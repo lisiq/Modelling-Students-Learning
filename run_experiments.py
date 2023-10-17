@@ -19,7 +19,7 @@ parameters = {
     'dropout': 0.4,
     'early_stopping': 200,
     'n_splits': 10,
-    'device': 'cuda:1',
+    'device': 'cuda',
     'batch_size': 1024
     }
 

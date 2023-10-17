@@ -26,6 +26,8 @@ class GNNEncoder(torch.nn.Module):
             x = self.batch_norm_layers[i](x)
 
         x = self.layers[-1](x, edge_index)
+        x = F.elu(x)
+        x = F.dropout(x, training=self.training, p=0.4)
         x = self.batch_norm_layers[-1](x)
 
         return x
