@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 
 parameters = {
-    "hidden_dims": [16,8],
+    "hidden_dims": [16,8,8],
     "df_name": None,
     "epochs": 10000,
     "learning_rate": 0.005,

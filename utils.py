@@ -94,15 +94,15 @@ def load_data_synthetic(fname):
     return torch.load(fname)
 
 
-def generate_data_object_synthetic(n_students,n_tasks,n_student_per_task, probabilistic):
+def generate_data_object_synthetic(n_students,n_tasks,n_task_per_student,  error_proness_denom = 2, probabilistic=True, number_of_tasks_per_students_is_max=False):
 
-    edge_indices, y= generate_synthetic_student_data_interactions_heterogeneous(n_students,n_tasks,n_student_per_task, probabilistic)
+    edge_indices, y= generate_synthetic_student_data_interactions_heterogeneous(n_students,n_tasks,n_task_per_student,  error_proness_denom , probabilistic, number_of_tasks_per_students_is_max)
     
     data = create_data_object_synthetic_heterogeneous(n_students,n_tasks,edge_indices,y)
     return data
 
 
-def generate_synthetic_student_data_interactions_heterogeneous(n_students,n_tasks,n_student_per_task, probabilistic=True):
+def generate_synthetic_student_data_interactions_heterogeneous(n_students,n_tasks,n_tasks_per_students, error_proness_denom = 2, probabilistic=True, number_of_tasks_per_students_is_max=False):
     # give random ability and difficulty features to students and tasks respectively
     max_difficulty = 10
     students = {
@@ -115,16 +115,18 @@ def generate_synthetic_student_data_interactions_heterogeneous(n_students,n_task
 
     edge_indices = []
     y = []
-    for c, cv in code.items():
-        # k = random.sample(list(range(1,n_student_per_task)),k=1)
-        k = n_student_per_task
+    for c, difficulty in code.items():
+        if number_of_tasks_per_students_is_max:
+            k = random.sample(list(range(1,n_tasks_per_students)),k=1)[0]
+        else:
+            k = n_tasks_per_students
         s = random.sample(students.keys(), k=k)
         for i in s:
             edge_indices.append((i, c))
-            x = students[i][0] - cv[0]
+            x = students[i][0] - difficulty[0]
             
-            if probabilistic:
-                sigmoid_value = 1 / (1 + np.exp(-x/2))
+            if probabilistic:  
+                sigmoid_value = 1 / (1 + np.exp(-x/error_proness_denom))
                 if random.random() <= sigmoid_value:
                     y.append(1)
                 else:
@@ -134,7 +136,6 @@ def generate_synthetic_student_data_interactions_heterogeneous(n_students,n_task
                     y.append(1)
                 else: 
                     y.append(0)   
-    
     return edge_indices, y
 
 
@@ -152,7 +153,7 @@ def create_data_object_synthetic_heterogeneous(n_students,n_tasks,edge_indices,y
     data["code"].x = torch.eye(n_tasks)
 
     # Add the edge indices
-    data['student', "takes", "code"].edge_index = torch.from_numpy(np.array(edge_indices).T)
+    data['student', "takes", "code"].edge_index = torch.from_numpy(np.array(edge_indices).T).to(torch.long)
 
     # Add the edge label
     data['student', "takes", "code"].y = torch.from_numpy(np.array(y)).to(torch.long)

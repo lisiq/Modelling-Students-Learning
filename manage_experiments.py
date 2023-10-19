@@ -113,8 +113,8 @@ def perform_cross_validation(data, parameters):
                                         
         
         train_loader = NeighborLoader(train_subgaph_data, 
-                                    num_neighbors = {key: [10] for key in train_subgaph_data.edge_types}, 
-                                    input_nodes=('student', train_subgaph_data['student'].node_id),
+                                    num_neighbors = {key: [15,5,5] for key in train_subgaph_data.edge_types}, 
+                                    input_nodes=('code', train_subgaph_data['code'].node_id),
                                     directed=True,
                                     replace=False,
                                     batch_size=parameters['batch_size'])
