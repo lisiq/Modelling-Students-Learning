@@ -114,9 +114,9 @@ def perform_cross_validation(data, parameters, save_embeddings=False, save_subgr
         val_subgraph_data = subgraph(data, val_index).to(device)                                        
         
         train_loader = NeighborLoader(train_subgraph_data, 
-                                    num_neighbors = {key: [-1] for key in train_subgraph_data.edge_types}, 
+                                    num_neighbors = {key: [20, 20] for key in train_subgraph_data.edge_types}, #[-1]
                                     input_nodes=('student', train_subgraph_data['student'].node_id),
-                                    directed=False,
+                                    directed=True, #False
                                     replace=False,
                                     batch_size=parameters['batch_size'])
         
