@@ -1,0 +1,230 @@
+import torch
+import tqdm
+import numpy as np
+from sklearn.metrics import davies_bouldin_score, calinski_harabasz_score, silhouette_score, pairwise_distances
+import pandas as pd
+import torch.nn.functional as F
+from sklearn.metrics import roc_auc_score, balanced_accuracy_score
+from torch.optim import Adam
+from torch_geometric.data import Data, HeteroData
+import torch_geometric.transforms as T
+from torch.autograd import grad
+from torch.autograd.functional import jacobian
+from torch.nn import Linear, MSELoss
+from torch_geometric.nn import to_hetero
+
+mse = MSELoss(reduction='mean')
+softmax = torch.nn.Softmax(dim=1)
+
+@torch.no_grad()
+def compute_clustering_indices(model, data, df_item, device, grouping_variable, 
+                               target_variable, shuffle=False, seed=1, minsamples=10):
+    scores = {
+                'DB': {},
+                'SH': {},
+                'CH': {}
+    }
+    
+    unique_variable = df_item[grouping_variable].dropna().unique()
+    df_item = df_item.reset_index()
+    
+    data = data.to(device)
+    try:
+        pred, z_dict, _ = model(data)
+    except:
+        z_dict = model.get_embeddings(data)
+        
+    embedding = z_dict['item'].detach().cpu().numpy()   
+
+    for category in unique_variable:
+        select =  (df_item[target_variable].notnull()) & (df_item[grouping_variable] == category)
+        X = embedding[select, :]
+        labels = df_item[target_variable].values[select]
+        
+        # ensure a minimum of samples
+        tab = df_item[target_variable].loc[select].value_counts()
+        ind = tab[tab >= minsamples].index
+        w = df_item[target_variable].loc[select].isin(ind).values
+        labels = labels[w]
+        X = X[w, :]
+        if shuffle:
+            if seed > 0:
+                np.random.seed(seed)  
+            np.random.shuffle(labels)
+        try:
+            scores['DB'][category] = 1/davies_bouldin_score(X, labels)
+            scores['SH'][category] = silhouette_score(X, labels, metric='euclidean')
+            scores['CH'][category] = calinski_harabasz_score(X, labels)
+        except:
+            scores['DB'][category] = np.nan
+            scores['SH'][category] = np.nan
+            scores['CH'][category] = np.nan
+
+    return scores
+
+@torch.no_grad()
+def compute_domain_distances(model, data, df_item, device, shuffle=False, seed=1, NSAMPLES=1000):
+    
+    df_item = df_item.reset_index()
+
+    sampled_df = df_item.groupby('scale', as_index=False).apply(lambda x: x.sample(np.min((len(x), NSAMPLES))))
+
+    domains = df_item['domain'].values
+    unique_domains = df_item['domain'].dropna().unique()
+    unique_scales = df_item['scale'].dropna().unique()
+
+    try:
+        pred, z_dict, _ = model(data)
+        embedding = z_dict['item'].detach().cpu().numpy()
+    except:
+        z_dict = model.get_embeddings(data)
+        embedding = z_dict['item']    
+    
+    # print counts
+    # print(df_item.groupby('scale').count()['index'])
+    nscales = len(unique_scales)
+    mean_distances = np.zeros((nscales, nscales))
+    within = []
+    between = []
+    
+    
+    if shuffle:
+        if seed > 0:
+            np.random.seed(seed)  
+        np.random.shuffle(domains)
+
+    for i, scale_i in enumerate(unique_scales):
+        for j, scale_j in enumerate(unique_scales):
+               
+            if i >= j:
+                select_i = sampled_df.loc[sampled_df['scale'] == scale_i].index.get_level_values(1)
+                select_j = sampled_df.loc[sampled_df['scale'] == scale_j].index.get_level_values(1)
+                X_i = embedding[select_i, :]
+                X_j = embedding[select_j, :]
+                D = pairwise_distances(X_i, X_j)
+                mean_distances[i, j] = np.mean(D)
+            else:
+                continue
+                    
+            if i > j:
+                mean_distances[j, i] = mean_distances[i, j]
+               
+            domain_i = domains[select_i][0]
+            domain_j = domains[select_j][0]
+            
+            if domain_i == domain_j: 
+                within.append(mean_distances[i, j])
+            else:
+                between.append(mean_distances[i, j])
+                
+    within_domain = np.mean(within)      
+    between_domain = np.mean(between)      
+
+    return within_domain, between_domain, mean_distances
+
+@torch.no_grad()
+def evaluate_items(model, data, df_item, device, shuffle=False, seed=1, minsamples=10):
+    
+    scores = compute_clustering_indices(model, data, df_item, device, 'scale', 
+                                        'matrix', shuffle=shuffle, seed=seed, 
+                                        minsamples=minsamples)
+    
+    within_domain, between_domain, mean_distances = compute_domain_distances(model, data, df_item, device, shuffle=shuffle, seed=seed)
+    
+    return scores, within_domain, between_domain, mean_distances
+
+
+@torch.no_grad()
+def clustering(model, data, df_item, device, unique_scales, unique_domains, shuffle=False, seed=1, NSAMPLES=1000):
+    # deprecated
+    scores = {
+                'DB': {},
+                'SH': {},
+                'CH': {}
+    }
+    
+    df_item = df_item.reset_index()
+    data = data.to(device)
+    pred, z_dict, _ = model(data)
+    #select = df_item['scale'].isin(['dles', 'ehoe', 'mzuv']).values
+    embedding = z_dict['item'].detach().cpu().numpy()
+    for scale in unique_scales:
+        select = df_item['scale'] == scale 
+        X = embedding[select, :]
+        notnan = df_item['matrix'].notnull().values[select]
+        labels = df_item['matrix'].values[select]
+        labels = labels[notnan]
+        X = X[notnan, :]
+        
+        if shuffle:
+            if seed > 0:
+                np.random.seed(seed)  
+            np.random.shuffle(labels)
+        try:
+            scores['DB'][scale] = davies_bouldin_score(X, labels)
+            scores['SH'][scale] = silhouette_score(X, labels, metric='euclidean')
+            scores['CH'][scale] = calinski_harabasz_score(X, labels)
+        except:
+            scores['DB'][scale] = np.nan
+            scores['SH'][scale] = np.nan
+            scores['CH'][scale] = np.nan
+            
+    sampled_df = df_item.groupby('scale', as_index=False).apply(lambda x: x.sample(np.min((len(x), NSAMPLES))))
+    # print counts
+    # print(df_item.groupby('scale').count()['index'])
+    nscales = len(unique_scales)
+    mean_distances = np.zeros((nscales, nscales))
+    within = []
+    between = []
+    
+    domains = df_item['domain'].values
+    
+    if shuffle:
+        if seed > 0:
+            np.random.seed(seed)  
+        np.random.shuffle(domains)
+
+    for i, scale_i in enumerate(unique_scales):
+        for j, scale_j in enumerate(unique_scales):
+               
+            if i >= j:
+                select_i = sampled_df.loc[sampled_df['scale'] == scale_i].index.get_level_values(1)
+                select_j = sampled_df.loc[sampled_df['scale'] == scale_j].index.get_level_values(1)
+                X_i = embedding[select_i, :]
+                X_j = embedding[select_j, :]
+                D = pairwise_distances(X_i, X_j)
+                mean_distances[i, j] = np.mean(D)
+            else:
+                continue
+                    
+            if i > j:
+                mean_distances[j, i] = mean_distances[i, j]
+               
+            domain_i = domains[select_i][0]
+            domain_j = domains[select_j][0]
+            
+            if domain_i == domain_j: 
+                within.append(mean_distances[i, j])
+            else:
+                between.append(mean_distances[i, j])
+                
+    within_domain = np.mean(within)      
+    between_domain = np.mean(between)      
+
+#    for matdiff in unique_matdiff:
+#        scores[matdiff] = {}
+#        for scale in unique_scales:
+#            select = np.logical_and(df_item['scale'] == scale, df_item['matdiff'] == matdiff)
+#            X = embedding[select, :]
+#            labels = df_item['matrix'].values[select]
+#        
+#            if shuffle:
+#                np.random.shuffle(labels)
+#                
+#            try:
+#                scores[matdiff][scale] = davies_bouldin_score(X, labels)
+#            except:
+#                scores[matdiff][scale] = np.nan
+
+    return scores, within_domain, between_domain, mean_distances
+

@@ -11,6 +11,7 @@ import os
 import numpy as np
 import uuid as _uuid
 import glob as _glob
+from IRT import MIRT_2PL, train_IRT, test_IRT
 
 
 import random 
@@ -62,44 +63,45 @@ def perform_experiment(filename):
 
     if parameters["df_name"] in ["synthetic.salamoia"]:
          data = load_data_synthetic(parameters["df_name"])
-    elif parameters["df_name"] in ["mindsteps_set_full", "mindsteps_subset"]:
-        df = load_data_heterogeneous(parameters["df_name"])
+    elif "mindsteps" in parameters["df_name"]:
+        df = load_data_heterogeneous("data/" + parameters["df_name"])
         data = create_data_object_heterogeneous(df)
     else:
           assert False, f"unknown dataset: {parameters['df_name']}"
-    
-    
+        
     output_dict = perform_cross_validation(data, parameters)
-    
-    
-    output_dict["done"] = True
+        
+    output_dict['done'] = True
     save_dict(output_dict, filename)    
 
 
 ####################################################
 
-# Benji we have this function to get the embedings
-# feel free to use it or to subsitute it to your needs :)
-def get_embedding(model, data):
-    model.eval()
-    x_dict = {
-            "student": model.student_lin(data.student_x) +  model.student_emb(data.student_node_id),
-            "code": model.code_lin(data.code_x) + model.code_emb(data.code_node_id),
-            } 
+# function to get the embedings
+# using class methods instead
+#def get_embedding(model, data):
+#    model.eval()
 
-    new_x = torch.cat([x_dict['student'], x_dict['code']], dim=0)
-    return new_x.detach().cpu().numpy().tolist()
+#    x_dict = {
+#          'student': model.student_lin(data['student'].x) +  model.student_emb(data['student'].node_id),
+#          'item': model.item_lin(data['item'].x) + model.item_emb(data['item'].node_id),
+#        } 
+    
+#    new_x = torch.cat([x_dict['student'], x_dict['item']], dim=0)
+#    return new_x.detach().cpu().numpy().tolist()
 
 
-def perform_cross_validation(data, parameters):
-    n_splits = parameters["n_splits"]
-    device = parameters["device"]
+def perform_cross_validation(data, parameters, save_embeddings=False, save_subgraph=False, model=None, final_fit=False):
+    n_splits = parameters['n_splits']
+    device = torch.device(parameters['device'] if torch.cuda.is_available() else 'cpu')
     kf = KFold(n_splits=n_splits, random_state=random_state, shuffle=True)
-    print("WARNING: running with a fixed random state")
+    print('WARNING: running with a fixed random state')
     output_dict = {}
 
-    for fold, (train_index, test_index) in tqdm(enumerate(kf.split(range(data['student', "takes", "code"].y.size(0))))):
+    for fold, (train_index, test_index) in tqdm(enumerate(kf.split(range(data['student', 'responds', 'item'].y.size(0))))):
 
+        if final_fit and fold == 1: # for final fit, just fit once
+            break
         _, _, test_index, val_index = train_test_split(test_index,
                                         test_index,
                                         test_size=0.5, 
@@ -107,41 +109,56 @@ def perform_cross_validation(data, parameters):
         
 
         # define train test val subgraphs
-        train_subgaph_data = subgraph(data, train_index)
-        test_subgaph_data = subgraph(data, test_index).to(device)
-        val_subgaph_data = subgraph(data, val_index).to(device)
-                                        
+        train_subgraph_data = subgraph(data, train_index)
+        test_subgraph_data = subgraph(data, test_index).to(device)
+        val_subgraph_data = subgraph(data, val_index).to(device)                                        
         
-        train_loader = NeighborLoader(train_subgaph_data, 
-                                    num_neighbors = {key: [20,20] for key in train_subgaph_data.edge_types}, 
-                                    input_nodes=('student', train_subgaph_data['student'].node_id),
-                                    directed=True,
+        train_loader = NeighborLoader(train_subgraph_data, 
+                                    num_neighbors = {key: [20, 20] for key in train_subgraph_data.edge_types}, #[-1]
+                                    input_nodes=('student', train_subgraph_data['student'].node_id),
+                                    directed=True, #False
                                     replace=False,
                                     batch_size=parameters['batch_size'])
         
         
         # Initialise
-        if parameters['df_name'] in ['synthetic.salamoia']:
-             model = EmbedderHeterogeneous( 
-                n_students =  data["student"].x.size(0),
-                n_items = data["code"].x.size(0),
-                student_inchannel = data["student"].x.size(1),
-                item_inchannel = data["code"].x.size(1),
-                hidden_channels=parameters['hidden_dims'],
-                edge_channel=None,
-                metadata=data.metadata()
-                ).to(device)
-        else:
-            model = EmbedderHeterogeneous( 
-                n_students =  data["student"].x.size(0),
-                n_items = data["code"].x.size(0),
-                student_inchannel = data["student"].x.size(1),
-                item_inchannel = data["code"].x.size(1),
-                hidden_channels=parameters['hidden_dims'],
-                edge_channel=data['student', 'takes', 'code'].edge_attr.shape[1],
-                metadata=data.metadata()
-                ).to(device)
+        
+        if model is None:
+            edge_dim = data['student', 'responds', 'item'].edge_attr.shape[1]
+            if parameters['model_type'] == 'GNN':
+                test_loop = test_embedder_heterogeneous
+                train_loop = train_embedder_heterogeneous
+                if parameters['df_name'] in ['synthetic.salamoia']:
+                     model = EmbedderHeterogeneous( 
+                        n_students =  data['student'].x.size(0),
+                        n_items = data['item'].x.size(0),
+                        student_inchannel = data['student'].x.size(1),
+                        item_inchannel = data['item'].x.size(1),
+                        hidden_channels=parameters['hidden_dims'],
+                        edge_channel=None,
+                        metadata=data.metadata()
+                        ).to(device)
+                else:
+                    model = EmbedderHeterogeneous( 
+                        n_students =  data['student'].x.size(0),
+                        n_items = data['item'].x.size(0),
+                        student_inchannel = data['student'].x.size(1),
+                        item_inchannel = data['item'].x.size(1),
+                        hidden_channels=parameters['hidden_dims'],
+                        edge_channel=edge_dim,
+                        metadata=data.metadata()
+                        ).to(device)
 
+            elif parameters['model_type'] == 'IRT':
+                lambda1 = parameters['lambda1'] if 'lambda1' in parameters else 0
+                lambda2 = parameters['lambda2'] if 'lambda2' in parameters else 0
+                
+                model = MIRT_2PL(parameters['hidden_dims'], edge_dim, data, 
+                                 lambda1 = lambda1,
+                                 lambda2 = lambda2).to(device)
+                test_loop = test_IRT
+                train_loop = train_IRT
+                
 
         optimizer = torch.optim.Adam(model.parameters(), lr=parameters['learning_rate'], weight_decay=parameters['weight_decay'])
 
@@ -153,31 +170,31 @@ def perform_cross_validation(data, parameters):
         for epoch in tqdm(range(1, parameters['epochs']+1)):
             for batch in tqdm(train_loader): 
                 batch = batch.to(device)
-                loss = train_embedder_heterogeneous(
+                loss = train_loop(
                     model,
                     batch, 
                     optimizer,
                     )
             losses.append(loss.detach().item())
         
-            val_b = test_embedder_heterogeneous(model, test_subgaph_data, fold, 'val')
-            test_b = test_embedder_heterogeneous(model, val_subgaph_data, fold, 'test')
+            val_b = test_loop(model, test_subgraph_data, fold, 'val')
+            test_b = test_loop(model, val_subgraph_data, fold, 'test')
 
-            if val_b['Balanced Accuracy'+f"_{fold}_val"] > best_val_acc:
+            if val_b['Balanced Accuracy'+f'_{fold}_val'] > best_val_acc:
                 early_stopping = 0
 
-                best_val_acc = val_b['Balanced Accuracy'+f"_{fold}_val"]
-                final_test_acc = test_b['Balanced Accuracy'+f"_{fold}_test"]
+                best_val_acc = val_b['Balanced Accuracy'+f'_{fold}_val']
+                final_test_acc = test_b['Balanced Accuracy'+f'_{fold}_test']
 
                 print(f'\nEpoch: {epoch:03d}, Loss: {loss:.4f}, '
                     f'Val: {best_val_acc:.4f}, Test: {final_test_acc:.4f}')
 
-                val_b_ = test_embedder_heterogeneous(model, val_subgaph_data,  fold, 'val')
-                test_b_ = test_embedder_heterogeneous(model, test_subgaph_data, fold, 'test')
+                val_b_ = test_loop(model, val_subgraph_data,  fold, 'val')
+                test_b_ = test_loop(model, test_subgraph_data, fold, 'test')
 
-                # Benji you can comment this out to save aslo the embeddings
-                # saved_embedding = get_embedding(model, data)
-            
+                # Comment this out to save also the embeddings
+                if save_embeddings: 
+                    saved_embedding = model.get_embeddings(data.to(device))            
 
             else:
                 early_stopping += 1
@@ -185,19 +202,30 @@ def perform_cross_validation(data, parameters):
             if early_stopping == parameters['early_stopping']:
                 break
             
-            data = data.to("cpu")
+            data = data.to('cpu')
 
         # Results
         losses_dict = {f'losses_{fold}': losses}
-        # Benji you can comment this out to save aslo the embeddings
-        # embedding = {f'embedding_{fold}': saved_embedding}
+        # Comment this out to save also the embeddings
+        
         output_dict.update({**parameters,
                             **val_b_, 
                             **test_b_,  
                             **losses_dict}) 
         
-        # Benji you can comment this out to save aslo the embeddings
-        #, **embedding})
-        output_dict["device"] = str(output_dict["device"])
-    return output_dict
-
+        if save_embeddings:
+            embedding = {f'embedding_{fold}': saved_embedding}
+            indices_dict = {f'indices_{fold}': (train_index, val_index, test_index)}            
+            output_dict.update({**embedding, **indices_dict})
+            
+        if save_subgraph:
+            output_dict['train_subgraph_data'] = train_subgraph_data
+            output_dict['val_subgraph_data'] = val_subgraph_data
+            output_dict['test_subgraph_data'] = test_subgraph_data
+            
+        output_dict['device'] = str(output_dict['device'])
+        
+    if not final_fit:
+        return output_dict
+    else: 
+        return output_dict, model
