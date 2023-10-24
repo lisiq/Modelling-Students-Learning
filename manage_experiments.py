@@ -194,7 +194,7 @@ def perform_cross_validation(data, parameters, save_embeddings=False, save_subgr
 
                 # Comment this out to save also the embeddings
                 if save_embeddings: 
-                    saved_embedding = model.get_embeddings(data)            
+                    saved_embedding = model.get_embeddings(data.to(device))            
 
             else:
                 early_stopping += 1

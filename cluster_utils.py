@@ -31,10 +31,10 @@ def compute_clustering_indices(model, data, df_item, device, grouping_variable,
     data = data.to(device)
     try:
         pred, z_dict, _ = model(data)
-        embedding = z_dict['item'].detach().cpu().numpy()
     except:
         z_dict = model.get_embeddings(data)
-        embedding = z_dict['item']    
+        
+    embedding = z_dict['item'].detach().cpu().numpy()   
 
     for category in unique_variable:
         select =  (df_item[target_variable].notnull()) & (df_item[grouping_variable] == category)

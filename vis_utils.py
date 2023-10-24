@@ -146,11 +146,9 @@ def visualize_students(model, data, device, df_student, OUTNAME, dims=('x', 'y')
     data = data.to(device)
     try:
         pred, z_dict, z_edge = model(data)
-        embedding = z_dict['student']
-        embedding = embedding.detach().cpu().numpy()
     except:
         z_dict = model.get_embeddings(data)
-        embedding = z_dict['student']    
+    embedding = z_dict['student'].detach().cpu().numpy()
 
     dimred.fit(embedding)
     low_dim = dimred.transform(embedding)
@@ -204,11 +202,9 @@ def visualize_items(model, data, device, df_item, OUTNAME, dims=('x', 'y'), equa
     data = data.to(device)
     try:
         pred, z_dict, z_edge = model(data)
-        embedding = z_dict['item']
-        embedding = embedding.detach().cpu().numpy()
     except:
-        z_dict = model.get_embeddings(data)
-        embedding = z_dict['item']    
+        z_dict = model.get_embeddings(data)        
+    embedding = z_dict['item'].detach().cpu().numpy()
 
     dimred.fit(embedding)
     low_dim = dimred.transform(embedding)
@@ -224,17 +220,25 @@ def visualize_items(model, data, device, df_item, OUTNAME, dims=('x', 'y'), equa
     save_plot(X, 'domain', 'Subject Domain', figname, x='x', y='y', plot_type='sct', equal_axes=equal_axes, with_legend=True)
     save_plot(X, 'scale', 'Competence Domain', figname, x='x', y='y', plot_type='sct', equal_axes=equal_axes)
     save_plot(X, 'IRT_difficulty', 'Difficulty', figname, x='x', y='y', plot_type='sct', equal_axes=equal_axes, palette='viridis')
+    save_plot(X, 'IRT1_difficulty', 'Difficulty', figname, x='x', y='y', plot_type='sct', equal_axes=equal_axes, palette='viridis')
+    save_plot(X, 'IRT1_discrimination', 'Discrimination', figname, x='x', y='y', plot_type='sct', equal_axes=equal_axes, palette='viridis')
 
     save_plot(X, 'domain', 'Subject Domain', figname, x='z', y='y', plot_type='sct', equal_axes=equal_axes, with_legend=False)
     save_plot(X, 'scale', 'Competence Domain', figname, x='z', y='y', plot_type='sct', equal_axes=equal_axes)
     save_plot(X, 'IRT_difficulty', 'Difficulty', figname, x='z', y='y', plot_type='sct', equal_axes=equal_axes, palette='viridis')
+    save_plot(X, 'IRT1_difficulty', 'Difficulty', figname, x='z', y='y', plot_type='sct', equal_axes=equal_axes, palette='viridis')
+    save_plot(X, 'IRT1_discrimination', 'Discrimination', figname, x='z', y='y', plot_type='sct', equal_axes=equal_axes, palette='viridis')
 
     figname = f'{OUTNAME}_dim_items'
     for i, mydim in enumerate(['x', 'y', 'z']):
         save_plot(X, 'domain', 'Subject Domain', figname, x=mydim, plot_type='kde')
         save_plot(X, 'scale', 'Competence Domain', figname, x=mydim, plot_type='kde')
         save_plot(X, 'IRT_difficulty', 'Difficulty', figname, x=mydim, plot_type='reg')
+        save_plot(X, 'IRT1_difficulty', 'Difficulty', figname, x=mydim, plot_type='reg')
+        save_plot(X, 'IRT1_discrimination', 'Discrimination', figname, x=mydim, plot_type='reg')
         myresults.add_stats('item_difficulty_%s'%mydim, X['IRT_difficulty'], X[mydim])
+        myresults.add_stats('item_difficulty1_%s'%mydim, X['IRT1_difficulty'], X[mydim])
+        myresults.add_stats('item_discrimination1_%s'%mydim, X['IRT1_discrimination'], X[mydim])
         
     fig = plt.figure()
     PC_values = np.arange(dimred.n_components_) + 1
@@ -273,8 +277,7 @@ def visualize_edges_age(model, data, edge_indices, device, df, OUTNAME, dims=('x
 
     edge_indices = np.array(edge_indices)
     X = df.loc[edge_indices, :][labcols].reset_index()
-    embedding = z_edge
-    embedding = embedding.detach().cpu().numpy()    
+    embedding = z_edge.detach().cpu().numpy()    
     
     if aggregate:
         cols = [ f"em_{i}" for i in range(embedding.shape[1]) ]
@@ -412,15 +415,14 @@ def visualize_edges_age(model, data, edge_indices, device, df, OUTNAME, dims=('x
 def visualize_edges(model, data, edge_indices, device, df, OUTNAME, **kwargs):
     
     data = data.to(device)
+    
     try:
         pred, z_dict, z_edge = model(data)
-        embedding = z_edge
-        embedding = embedding.detach().cpu().numpy()
+        embedding = z_edge.detach().cpu().numpy()
     except:
         # not implemented
-        z_dict = model.get_embeddings(data)
-        embedding = z_edge    
-
+        pass
+    
     dimred.fit(embedding)
     low_dim = dimred.transform(embedding)
     
