@@ -40,8 +40,8 @@ class EmbedderHeterogeneous(torch.nn.Module):
 
     def forward(self, data):
         x_dict = {
-          "student": F.elu(self.student_lin(data["student"].x)) +  self.student_emb(data['student'].node_id),
-          "code": F.elu(self.code_lin(data["code"].x)) + self.code_emb(data['code'].node_id),
+          "student": self.student_lin(data["student"].x) +  self.student_emb(data['student'].node_id),
+          "code": self.code_lin(data["code"].x) + self.code_emb(data['code'].node_id),
         } 
 
         

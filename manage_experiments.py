@@ -113,7 +113,7 @@ def perform_cross_validation(data, parameters):
                                         
         
         train_loader = NeighborLoader(train_subgaph_data, 
-                                    num_neighbors = {key: [20,20] for key in train_subgaph_data.edge_types}, 
+                                    num_neighbors = {key: [10,5] for key in train_subgaph_data.edge_types}, 
                                     input_nodes=('student', train_subgaph_data['student'].node_id),
                                     directed=True,
                                     replace=False,
@@ -183,6 +183,8 @@ def perform_cross_validation(data, parameters):
                 early_stopping += 1
 
             if early_stopping == parameters['early_stopping']:
+                best_train_acc = test_embedder_heterogeneous(model, train_subgaph_data.to(device), fold, 'train')
+                print(f'Train balanced accuracy:{best_train_acc["Balanced Accuracy"+f"_{fold}_train"]:.4f}')
                 break
             
             data = data.to("cpu")
@@ -193,7 +195,8 @@ def perform_cross_validation(data, parameters):
         # embedding = {f'embedding_{fold}': saved_embedding}
         output_dict.update({**parameters,
                             **val_b_, 
-                            **test_b_,  
+                            **test_b_,
+                            **best_train_acc,  
                             **losses_dict}) 
         
         # Benji you can comment this out to save aslo the embeddings
