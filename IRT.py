@@ -34,7 +34,7 @@ class MIRT_2PL(torch.nn.Module):
         if self.lambda1 > 0:
             reg += torch.sum(self.z_student.pow(2.0))/2
         if self.lambda2 > 0:
-            reg += torch.sum(self.softplus(self.z_item.pow(2.0)))/2
+            reg += torch.sum(self.softplus(self.z_item).pow(2.0))/2
 
         return reg
         
