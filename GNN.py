@@ -1,7 +1,7 @@
 import torch
 import torch.nn.functional as F
-from torch.nn import Linear, Softplus
-from torch_geometric.nn import GATConv, BatchNorm, SAGEConv
+from torch.nn import Linear
+from torch_geometric.nn import BatchNorm, SAGEConv
 from tqdm import tqdm
 
 
@@ -39,16 +39,14 @@ class Classifier_heterogeneous(torch.nn.Module):
         # output is bi-dimensional because and item is either passed or not
         self.linear = Linear(2*input_channel+edge_dim, 2)
 
-    def forward(self, x_student, x_code, edge_label_index, edge_feat):
+    def forward(self, x_student, x_item, edge_label_index, edge_feat):
         # Convert node embeddings to edge-level representations:
         edge_feat_student = x_student[edge_label_index[0]]
-        edge_feat_code = x_code[edge_label_index[1]]
-
-
+        edge_feat_item = x_item[edge_label_index[1]]
 
         # concatenate node representations with edge features, and obtain edge feature
         if edge_feat is None: # for the synthetic dataset
-            x = self.linear(torch.cat([edge_feat_student, edge_feat_code], dim=-1))
+            x = self.linear(torch.cat([edge_feat_student, edge_feat_item], dim=-1))
         else:
-            x = self.linear(torch.cat([edge_feat_student, edge_feat, edge_feat_code], dim=-1))
+            x = self.linear(torch.cat([edge_feat_student, edge_feat, edge_feat_item], dim=-1))
         return x  
