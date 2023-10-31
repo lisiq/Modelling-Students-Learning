@@ -40,13 +40,8 @@ class EmbedderHeterogeneous(torch.nn.Module):
 
     def forward(self, data):
         x_dict = {
-<<<<<<< HEAD
-          "student": self.student_lin(data["student"].x) +  self.student_emb(data['student'].node_id),
-          "code": self.code_lin(data["code"].x) + self.code_emb(data['code'].node_id),
-=======
           'student': self.student_lin(data['student'].x) +  self.student_emb(data['student'].node_id),
           'item': self.item_lin(data['item'].x) + self.item_emb(data['item'].node_id),
->>>>>>> 4ca81a5101481c59db6da963868112832b6566df
         } 
         
         x_dict = self.encoder(x_dict, data.edge_index_dict)#, data.edge_attr_dict)
@@ -78,7 +73,7 @@ class EmbedderHeterogeneous(torch.nn.Module):
         return x_dict
 
 # Train the model function
-def train_embedder_heterogeneous(model, data, optimizer):
+def train_embedder_heterogeneous(model, data, optimizer, class_weights):
     model.train()
     optimizer.zero_grad()
     # from torch import autograd
@@ -88,7 +83,7 @@ def train_embedder_heterogeneous(model, data, optimizer):
                 )
     assert pred.isnan().sum() == 0, 'Output'
     target = data['student', 'item'].y 
-    loss = F.cross_entropy(pred, target.long())
+    loss = F.cross_entropy(pred, target.long(), weight=class_weights)
     loss.backward()
     optimizer.step()
     return loss

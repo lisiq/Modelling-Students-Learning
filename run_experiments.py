@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 
 parameters = {
-    'model_type' = 'GNN', # IRT, GNN
+    'model_type' : 'GNN', # IRT, GNN
     'hidden_dims': [16,8],
     'df_name': None,
     'epochs': 10000,
@@ -20,7 +20,7 @@ parameters = {
     'dropout': 0.4,
     'early_stopping': 200,
     'n_splits': 10,
-    'device': 'cuda:1',
+    'device': 'cuda',
     'batch_size': 1024
     }
 

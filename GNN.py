@@ -21,7 +21,7 @@ class GNNEncoder(torch.nn.Module):
 
         for i in range(len(self.hidden_channels)-2):
             x = F.elu(self.layers[i](x, edge_index))
-            x = F.dropout(x, training=self.training, p=0.4)
+            # x = F.dropout(x, training=self.training, p=0.4)
 
             x = self.batch_norm_layers[i](x)
 

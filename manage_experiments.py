@@ -12,7 +12,7 @@ import numpy as np
 import uuid as _uuid
 import glob as _glob
 from IRT import MIRT_2PL, train_IRT, test_IRT
-
+from sklearn.utils.class_weight import compute_class_weight
 
 import random 
 import sys
@@ -113,54 +113,61 @@ def perform_cross_validation(data, parameters, save_embeddings=False, save_subgr
         test_subgraph_data = subgraph(data, test_index).to(device)
         val_subgraph_data = subgraph(data, val_index).to(device)                                        
         
-        train_loader = NeighborLoader(train_subgaph_data, 
-                                    num_neighbors = {key: [10,5] for key in train_subgaph_data.edge_types}, 
-                                    input_nodes=('student', train_subgaph_data['student'].node_id),
+        train_loader = NeighborLoader(train_subgraph_data, 
+                                    num_neighbors = {key: [10,10] for key in train_subgraph_data.edge_types}, 
+                                    input_nodes=('student', train_subgraph_data['student'].node_id),
                                     directed=True,
                                     replace=False,
                                     batch_size=parameters['batch_size'])
         
         
         # Initialise
-        
-        if model is None:
-            edge_dim = data['student', 'responds', 'item'].edge_attr.shape[1]
-            if parameters['model_type'] == 'GNN':
-                test_loop = test_embedder_heterogeneous
-                train_loop = train_embedder_heterogeneous
-                if parameters['df_name'] in ['synthetic.salamoia']:
-                     model = EmbedderHeterogeneous( 
-                        n_students =  data['student'].x.size(0),
-                        n_items = data['item'].x.size(0),
-                        student_inchannel = data['student'].x.size(1),
-                        item_inchannel = data['item'].x.size(1),
-                        hidden_channels=parameters['hidden_dims'],
-                        edge_channel=None,
-                        metadata=data.metadata()
-                        ).to(device)
-                else:
+        # this makes the model initalise only once,
+        # all the other folds will use only the model defined in the first fold
+        # we removed this if statement as we were not sure where you need this
+        # if model is None:
+            
+        if parameters['model_type'] == 'GNN':
+            test_loop = test_embedder_heterogeneous
+            train_loop = train_embedder_heterogeneous
+            if parameters['df_name'] in ['synthetic.salamoia']:
                     model = EmbedderHeterogeneous( 
-                        n_students =  data['student'].x.size(0),
-                        n_items = data['item'].x.size(0),
-                        student_inchannel = data['student'].x.size(1),
-                        item_inchannel = data['item'].x.size(1),
-                        hidden_channels=parameters['hidden_dims'],
-                        edge_channel=edge_dim,
-                        metadata=data.metadata()
-                        ).to(device)
+                    n_students =  data['student'].x.size(0),
+                    n_items = data['item'].x.size(0),
+                    student_inchannel = data['student'].x.size(1),
+                    item_inchannel = data['item'].x.size(1),
+                    hidden_channels=parameters['hidden_dims'],
+                    edge_channel=None,
+                    metadata=data.metadata()
+                    ).to(device)
+            else:
+                edge_dim = data['student', 'responds', 'item'].edge_attr.shape[1]
+                model = EmbedderHeterogeneous( 
+                    n_students =  data['student'].x.size(0),
+                    n_items = data['item'].x.size(0),
+                    student_inchannel = data['student'].x.size(1),
+                    item_inchannel = data['item'].x.size(1),
+                    hidden_channels=parameters['hidden_dims'],
+                    edge_channel=edge_dim,
+                    metadata=data.metadata()
+                    ).to(device)
 
-            elif parameters['model_type'] == 'IRT':
-                lambda1 = parameters['lambda1'] if 'lambda1' in parameters else 0
-                lambda2 = parameters['lambda2'] if 'lambda2' in parameters else 0
-                
-                model = MIRT_2PL(parameters['hidden_dims'], edge_dim, data, 
-                                 lambda1 = lambda1,
-                                 lambda2 = lambda2).to(device)
-                test_loop = test_IRT
-                train_loop = train_IRT
+        elif parameters['model_type'] == 'IRT':
+            edge_dim = data['student', 'responds', 'item'].edge_attr.shape[1]
+            lambda1 = parameters['lambda1'] if 'lambda1' in parameters else 0
+            lambda2 = parameters['lambda2'] if 'lambda2' in parameters else 0
+            
+            model = MIRT_2PL(parameters['hidden_dims'], edge_dim, data, 
+                                lambda1 = lambda1,
+                                lambda2 = lambda2).to(device)
+            test_loop = test_IRT
+            train_loop = train_IRT
                 
 
         optimizer = torch.optim.Adam(model.parameters(), lr=parameters['learning_rate'], weight_decay=parameters['weight_decay'])
+        cw = train_subgraph_data['student', 'item'].y.numpy()
+        class_weights = compute_class_weight('balanced', classes=np.unique(cw), y=cw)
+        class_weights = torch.tensor(class_weights, dtype=torch.float32).to(device)
 
         # Training the model
         losses = []
@@ -174,6 +181,7 @@ def perform_cross_validation(data, parameters, save_embeddings=False, save_subgr
                     model,
                     batch, 
                     optimizer,
+                    class_weights
                     )
             losses.append(loss.detach().item())
         
@@ -200,7 +208,7 @@ def perform_cross_validation(data, parameters, save_embeddings=False, save_subgr
                 early_stopping += 1
 
             if early_stopping == parameters['early_stopping']:
-                best_train_acc = test_embedder_heterogeneous(model, train_subgaph_data.to(device), fold, 'train')
+                best_train_acc = test_embedder_heterogeneous(model, train_subgraph_data.to(device), fold, 'train')
                 print(f'Train balanced accuracy:{best_train_acc["Balanced Accuracy"+f"_{fold}_train"]:.4f}')
                 break
             
