@@ -166,14 +166,19 @@ def perform_cross_validation(data, parameters, save_embeddings=False, save_subgr
 
         optimizer = torch.optim.Adam(model.parameters(), lr=parameters['learning_rate'], weight_decay=parameters['weight_decay'])
         cw = train_subgraph_data['student', 'item'].y.numpy()
-        class_weights = compute_class_weight('balanced', classes=np.unique(cw), y=cw)
-        class_weights = torch.tensor(class_weights, dtype=torch.float32).to(device)
+        # class_weights = compute_class_weight('balanced', classes=np.unique(cw), y=cw)
+        # class_weights = torch.tensor(class_weights, dtype=torch.float32).to(device)
+        pos = cw.sum()
+        total_samples = len(cw)
+        # class_counts = [total_samples - pos, pos]  
+        # class_weights = [total_samples / (2 * count) for count in class_counts]
+        # class_weights = torch.tensor(class_weights, dtype=torch.float32).to(device)
 
         # Training the model
         losses = []
         best_val_acc = final_test_acc = 0
         early_stopping = 0
-
+        criterion = torch.nn.BCEWithLogitsLoss(pos_weight=torch.tensor([(total_samples - pos)/pos]).to(device))#class_weights)
         for epoch in tqdm(range(1, parameters['epochs']+1)):
             for batch in tqdm(train_loader): 
                 batch = batch.to(device)
@@ -181,7 +186,8 @@ def perform_cross_validation(data, parameters, save_embeddings=False, save_subgr
                     model,
                     batch, 
                     optimizer,
-                    class_weights
+                    criterion,
+                    #class_weights
                     )
             losses.append(loss.detach().item())
         

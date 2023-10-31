@@ -37,7 +37,7 @@ class Classifier_heterogeneous(torch.nn.Module):
     def __init__(self, input_channel, edge_dim):
         super().__init__()
         # output is bi-dimensional because and item is either passed or not
-        self.linear = Linear(2*input_channel+edge_dim, 2)
+        self.linear = Linear(2*input_channel+edge_dim, 1) # changed to 1 from 2
 
     def forward(self, x_student, x_item, edge_label_index, edge_feat):
         # Convert node embeddings to edge-level representations:
@@ -49,4 +49,4 @@ class Classifier_heterogeneous(torch.nn.Module):
             x = self.linear(torch.cat([edge_feat_student, edge_feat_item], dim=-1))
         else:
             x = self.linear(torch.cat([edge_feat_student, edge_feat, edge_feat_item], dim=-1))
-        return x  
+        return x 

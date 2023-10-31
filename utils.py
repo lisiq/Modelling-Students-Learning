@@ -99,9 +99,8 @@ def calculate_metrics(y_true, pred):
     from sklearn.metrics import confusion_matrix, f1_score, accuracy_score, recall_score, precision_score, balanced_accuracy_score, roc_auc_score
     from sklearn.metrics.cluster import adjusted_mutual_info_score
     
-    y_predsoft = softmax(pred).numpy()[:, 1]
-    y_pred = pred.argmax(dim=1, keepdim=True).view(-1).numpy()
-    
+    y_predsoft = pred.squeeze().numpy()#softmax(pred).numpy()[:, 1]
+    y_pred = pred.squeeze().round().long().numpy()#.argmax(dim=1, keepdim=True).view(-1).numpy()
     return {
             'AUC':roc_auc_score(y_true, y_predsoft),
             'F1-score-weighted':f1_score(y_true, y_pred, average='weighted'),

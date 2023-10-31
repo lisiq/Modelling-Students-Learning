@@ -73,7 +73,7 @@ class EmbedderHeterogeneous(torch.nn.Module):
         return x_dict
 
 # Train the model function
-def train_embedder_heterogeneous(model, data, optimizer, class_weights):
+def train_embedder_heterogeneous(model, data, optimizer, criterion):
     model.train()
     optimizer.zero_grad()
     # from torch import autograd
@@ -82,8 +82,8 @@ def train_embedder_heterogeneous(model, data, optimizer, class_weights):
                 data=data
                 )
     assert pred.isnan().sum() == 0, 'Output'
-    target = data['student', 'item'].y 
-    loss = F.cross_entropy(pred, target.long(), weight=class_weights)
+    target = data['student', 'item'].y.float()
+    loss = criterion(pred.squeeze(), target)#, pos_weight=class_weights) # target.long() cross_entropy
     loss.backward()
     optimizer.step()
     return loss
@@ -98,7 +98,7 @@ def test_embedder_heterogeneous(model, data, fold, type):
                 ).cpu()
     target = data['student', 'item'].y.long().cpu().numpy()
     
-    preds = calculate_metrics(target, pred)
+    preds = calculate_metrics(target, pred.sigmoid())
 
     metrics = {k+f'_{fold}_{type}':v for k,v in preds.items()}
     metrics['fold'] = fold
