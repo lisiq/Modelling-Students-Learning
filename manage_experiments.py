@@ -213,9 +213,7 @@ def perform_cross_validation(data, parameters, save_embeddings=False, save_subgr
             else:
                 early_stopping += 1
 
-            if early_stopping == parameters['early_stopping']:
-                best_train_acc = test_embedder_heterogeneous(model, train_subgraph_data.to(device), fold, 'train')
-                print(f'Train balanced accuracy:{best_train_acc["Balanced Accuracy"+f"_{fold}_train"]:.4f}')
+            if early_stopping == parameters['early_stopping']:                
                 break
             
             data = data.to('cpu')
@@ -223,7 +221,8 @@ def perform_cross_validation(data, parameters, save_embeddings=False, save_subgr
         # Results
         losses_dict = {f'losses_{fold}': losses}
         # Comment this out to save also the embeddings
-        
+        best_train_acc = test_embedder_heterogeneous(model, train_subgraph_data.to(device), fold, 'train')
+        print(f'Train balanced accuracy:{best_train_acc["Balanced Accuracy"+f"_{fold}_train"]:.4f}')
         output_dict.update({**parameters,
                             **val_b_, 
                             **test_b_,

@@ -153,7 +153,7 @@ def generate_synthetic_student_data_interactions_heterogeneous(n_students,n_task
             k = random.sample(list(range(1,n_tasks_per_students)),k=1)[0]
         else:
             k = n_tasks_per_students
-        s = random.sample(students.keys(), k=k)
+        s = random.sample(list(students.keys()), k=k)
         for i in s:
             edge_indices.append((i, c))
             x = students[i][0] - difficulty[0]

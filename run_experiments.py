@@ -14,10 +14,10 @@ parameters = {
     'model_type' : 'GNN', # IRT, GNN
     'hidden_dims': [16,8],
     'df_name': None,
-    'epochs': 10000,
-    'learning_rate': 0.005,
+    'epochs': 1,
+    'learning_rate': 0.001,
     'weight_decay': 0,
-    'dropout': 0.4,
+    # 'dropout': 0.4,
     'early_stopping': 200,
     'n_splits': 10,
     'device': 'cuda',
