@@ -37,8 +37,6 @@ class MIRT_2PL(torch.nn.Module):
             reg += torch.sum(self.softplus(self.z_item).pow(2.0))/2
 
         return reg
-        
-
             
     def forward(self, data):
         x_student = self.student_emb(data['student'].node_id)
@@ -70,14 +68,10 @@ class MIRT_2PL(torch.nn.Module):
               'ability': z_ability
             }
         z_edge = self.softplus(z_item) * (z_ability) 
-        z = z_edge.sum(dim=-1, keepdim=True) + z_offset
+        pred = z_edge.sum(dim=-1, keepdim=True) + z_offset
 
         self.z_student = z_student
         self.z_item = z_item
-        
-        pred = torch.hstack([z, -z])/2.
-        # loss?
-        # add regularization
         
         return pred #, z_dict, z_edge
     
@@ -89,7 +83,7 @@ class MIRT_2PL(torch.nn.Module):
         
         return x_dict
 
-def train_IRT(model, data, optimizer):
+def train_IRT(model, data, optimizer, criterion):
     model.train()
     optimizer.zero_grad()
     # from torch import autograd
@@ -98,8 +92,9 @@ def train_IRT(model, data, optimizer):
                 data=data
                 )
     assert pred.isnan().sum() == 0, 'Output'
-    target = data['student', 'item'].y 
-    loss = F.cross_entropy(pred, target.long()) + model.get_penalty()
+    target = data['student', 'item'].y.float()
+    #loss = F.cross_entropy(pred, target.long()) + model.get_penalty()
+    loss = criterion(pred.squeeze(), target) + model.get_penalty()
     loss.backward()
     optimizer.step()
     return loss
@@ -114,7 +109,7 @@ def test_IRT(model, data, fold, type):
                 ).cpu()
     target = data['student', 'item'].y.long().cpu().numpy()
     
-    preds = calculate_metrics(target, pred)
+    preds = calculate_metrics(target, pred.sigmoid())
 
     metrics = {k+f'_{fold}_{type}':v for k,v in preds.items()}
     metrics['fold'] = fold
