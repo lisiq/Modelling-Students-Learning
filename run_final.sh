@@ -1,3 +1,5 @@
 #!/bin/sh
-papermill -p IRT_DIMS 1 -p TEST False GNN_final.ipynb | jupyter-nbconvert --stdin --no-input --to html --output vis/GNN_batch_IRT.html > logs/GNN_batch_IRT.log &
-papermill -p IRT_DIMS 0 -p TEST False GNN_final.ipynb | jupyter-nbconvert --stdin --no-input --to html --output vis/GNN_batch_SAGE.html > logs/GNN_batch_IRT.log
+papermill -p IRT_DIMS 1 -p DATASET full GNN_final.ipynb | jupyter-nbconvert --stdin --no-input --to html --output vis/GNN_batch_IRT_full.html > logs/GNN_batch_IRT_full.log 
+papermill -p IRT_DIMS 0 -p DATASET full GNN_final.ipynb | jupyter-nbconvert --stdin --no-input --to html --output vis/GNN_batch_SAGE_full.html > logs/GNN_batch_IRT_full.log
+papermill -p IRT_DIMS 0 -p DATASET matrix GNN_final.ipynb | jupyter-nbconvert --stdin --no-input --to html --output vis/GNN_batch_SAGE_matrix.html > logs/GNN_batch_IRT_SAGE_matrix.log &
+papermill -p IRT_DIMS 0 -p DATASET matrix GNN_final.ipynb | jupyter-nbconvert --stdin --no-input --to html --output vis/GNN_batch_SAGE_topic.html > logs/GNN_batch_IRT_SAGE_topic.log

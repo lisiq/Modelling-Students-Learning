@@ -59,8 +59,7 @@ def create_data_object_heterogeneous(df, return_aux_data=False):
                               'matdiff': df.matdiff[rem_dup_index],
                               'topic': df.topic[rem_dup_index],
                               'responseformat': df.responseformat[rem_dup_index],
-                              'textlength': df.textlength[rem_dup_index],
-                              'ability': df.ability[rem_dup_index]
+                              'textlength': df.textlength[rem_dup_index]
                            })
 
 

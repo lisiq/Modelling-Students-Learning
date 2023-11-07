@@ -1,5 +1,7 @@
 import torch
 import os
+import io
+import pickle
 import pandas as pd
 import numpy as np
 from sklearn.decomposition import TruncatedSVD,PCA
@@ -53,6 +55,12 @@ FEATURE_LABELS = {'ability': 'Ability', 'Gender': 'Gender', 'age':'Age',
                   'years_from_start': 'Years of Use'}
 
 DOMAIN_LABELS = {'d': 'German', 'e': 'English', 'f': 'French', 'm': 'Mathematics'}
+
+class CPU_Unpickler(pickle.Unpickler):
+    def find_class(self, module, name):
+        if module == 'torch.storage' and name == '_load_from_bytes':
+            return lambda b: torch.load(io.BytesIO(b), map_location='cpu')
+        else: return super().find_class(module, name)
 
 class Results:
     def __init__(self):

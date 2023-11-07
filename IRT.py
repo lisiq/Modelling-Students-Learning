@@ -48,8 +48,7 @@ class MIRT_2PL(torch.nn.Module):
         z_item = x_item[col]
         z_offset = x_offset[col]
         
-        # demean the features
-        
+        # demean the features        
         edge_feat0 = data['student', 'responds', 'item'].edge_attr
         edge_feat0 = edge_feat0 - torch.mean(edge_feat0, dim=0)
         
