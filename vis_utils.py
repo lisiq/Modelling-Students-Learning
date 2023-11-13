@@ -18,11 +18,12 @@ dimred = PCA(whiten=False)
 
 ALPHA = 0.3
 ALPHALEVEL = 0.05
-NPERMS = 50
+NPERMS = 1000
 POINTSIZE = 2
 LINEWIDTH = 0.5
 PERCENTILES = (0.01, 99.99)
 LEGEND_SIZE = 12
+MAX_PCS = 8
 
 FIGSIZE = (2*6.4, 2*4.8) #width, height
 FIGSIZE2 = (2*6.4, 4*4.8)
@@ -197,6 +198,8 @@ def visualize_students(model, data, device, df_student, OUTNAME, dims=('x', 'y')
     fig = plt.figure()
     PC_values = np.arange(dimred.n_components_) + 1
     plt.plot(PC_values, dimred.explained_variance_ratio_, 'o-', linewidth=2, color='blue')
+    plt.xticks(PC_values[:MAX_PCS])
+    plt.xlim(0, max(PC_values[:MAX_PCS])+1)
     plt.title('Scree Plot')
     plt.xlabel('Principal Component')
     plt.ylabel('Variance Explained')        
@@ -252,6 +255,8 @@ def visualize_items(model, data, device, df_item, OUTNAME, dims=('x', 'y'), equa
     PC_values = np.arange(dimred.n_components_) + 1
     #plt.sca(axes[1, 1])
     plt.plot(PC_values, dimred.explained_variance_ratio_, 'o-', linewidth=2, color='blue')
+    plt.xticks(PC_values[:MAX_PCS])
+    plt.xlim(0, max(PC_values[:MAX_PCS])+1)
     plt.title('Scree Plot')
     plt.xlabel('Principal Component')
     plt.ylabel('Variance Explained')
@@ -449,6 +454,8 @@ def visualize_edges(model, data, edge_indices, device, df, OUTNAME, **kwargs):
     PC_values = np.arange(dimred.n_components_) + 1
     #plt.sca(axes[3, 0])
     plt.plot(PC_values, dimred.explained_variance_ratio_, 'o-', linewidth=2, color='blue')
+    plt.xticks(PC_values[:MAX_PCS])
+    plt.xlim(0, max(PC_values[:MAX_PCS])+1)
     plt.title('Scree Plot')
     plt.xlabel('Principal Component')
     plt.ylabel('Variance Explained')

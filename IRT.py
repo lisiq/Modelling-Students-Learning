@@ -112,8 +112,8 @@ def test_IRT(model, data, fold, type):
 
     metrics = {k+f'_{fold}_{type}':v for k,v in preds.items()}
     metrics['fold'] = fold
-    metrics[f'fold_truths_{fold}_{type}'] = target.tolist()
-    metrics[f'fold_preds_{fold}_{type}'] = pred.tolist()
+    #metrics[f'fold_truths_{fold}_{type}'] = target.tolist()
+    #metrics[f'fold_preds_{fold}_{type}'] = pred.tolist()
     return metrics
 
         
