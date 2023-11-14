@@ -206,7 +206,6 @@ def perform_cross_validation(data, parameters, save_embeddings=False, save_subgr
                 val_b_ = test_loop(model, val_subgraph_data,  fold, 'val')
                 test_b_ = test_loop(model, test_subgraph_data, fold, 'test')
 
-                # Comment this out to save also the embeddings
                 if save_embeddings: 
                     saved_embedding = model.get_embeddings(data.to(device))            
 
@@ -221,7 +220,7 @@ def perform_cross_validation(data, parameters, save_embeddings=False, save_subgr
         # Results
         # losses_dict = {f'losses_{fold}': losses}
         # Comment this out to save also the embeddings
-        best_train_acc = test_embedder_heterogeneous(model, train_subgraph_data.to(device), fold, 'train')
+        best_train_acc = test_loop(model, train_subgraph_data.to(device), fold, 'train')
         print(f'Train balanced accuracy:{best_train_acc["Balanced Accuracy"+f"_{fold}_train"]:.4f}')
         output_dict.update({**parameters,
                             **val_b_, 
