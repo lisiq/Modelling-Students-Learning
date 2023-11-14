@@ -18,7 +18,7 @@ dimred = PCA(whiten=False)
 
 ALPHA = 0.3
 ALPHALEVEL = 0.05
-NPERMS = 1000
+NPERMS = 100
 POINTSIZE = 2
 LINEWIDTH = 0.5
 PERCENTILES = (0.01, 99.99)
@@ -462,11 +462,11 @@ def visualize_edges(model, data, edge_indices, device, df, OUTNAME, **kwargs):
     fig.tight_layout()
     plt.savefig(f'./vis/{OUTNAME}_edges_PCA.png', dpi=DPI)
 
-def plot_clustering(grouping_variable, target_variable, model, data, df_item, device, OUTNAME, minsamples=100):
+def plot_clustering(grouping_variable, target_variable, model, data, df_item, device, OUTNAME, minsamples=100, nperms=NPERMS):
     
     scores_dict = {'CH': [], 'DB':[]}
 
-    for perm in range(NPERMS):
+    for perm in range(nperms):
         #print(perm)
         scores = compute_clustering_indices(model, data, df_item, device, grouping_variable, 
                                             target_variable, shuffle=perm>0, seed=0, minsamples=minsamples)
