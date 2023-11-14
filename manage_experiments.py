@@ -113,8 +113,13 @@ def perform_cross_validation(data, parameters, save_embeddings=False, save_subgr
         test_subgraph_data = subgraph(data, test_index).to(device)
         val_subgraph_data = subgraph(data, val_index).to(device)                                        
         
+        if 'neighbours' not in parameters.keys():
+            neighbours = [10, 10]
+        else:
+            neighbours = parameters['neighbours']
+            
         train_loader = NeighborLoader(train_subgraph_data, 
-                                    num_neighbors = {key: [10,10] for key in train_subgraph_data.edge_types}, 
+                                    num_neighbors = {key: neighbours for key in train_subgraph_data.edge_types}, 
                                     input_nodes=('student', train_subgraph_data['student'].node_id),
                                     directed=True,
                                     replace=False,
