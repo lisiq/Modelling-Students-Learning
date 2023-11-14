@@ -218,7 +218,7 @@ def perform_cross_validation(data, parameters, save_embeddings=False, save_subgr
             data = data.to('cpu')
 
         # Results
-        losses_dict = {f'losses_{fold}': losses}
+        # losses_dict = {f'losses_{fold}': losses}
         # Comment this out to save also the embeddings
         best_train_acc = test_loop(model, train_subgraph_data.to(device), fold, 'train')
         print(f'Train balanced accuracy:{best_train_acc["Balanced Accuracy"+f"_{fold}_train"]:.4f}')
@@ -226,7 +226,8 @@ def perform_cross_validation(data, parameters, save_embeddings=False, save_subgr
                             **val_b_, 
                             **test_b_,
                             **best_train_acc,  
-                            **losses_dict}) 
+                            # **losses_dict
+                            }) 
         
         if save_embeddings:
             embedding = {f'embedding_{fold}': saved_embedding}

@@ -101,16 +101,16 @@ def calculate_metrics(y_true, pred):
     y_predsoft = pred.squeeze().numpy()#softmax(pred).numpy()[:, 1]
     y_pred = pred.squeeze().round().long().numpy()#.argmax(dim=1, keepdim=True).view(-1).numpy()
     return {
-            'AUC':roc_auc_score(y_true, y_predsoft),
-            'F1-score-weighted':f1_score(y_true, y_pred, average='weighted'),
+            # 'AUC':roc_auc_score(y_true, y_predsoft), #
+            # 'F1-score-weighted':f1_score(y_true, y_pred, average='weighted'), #
             # 'F1-score-macro':f1_score(y_true, y_pred, average='macro'),
             # 'F1-score-micro':f1_score(y_true, y_pred, average='micro'),
             # 'Accuracy':accuracy_score(y_true, y_pred),
             'Balanced Accuracy': balanced_accuracy_score(y_true, y_pred),
-            'Precision-weighted':precision_score(y_true, y_pred, average='weighted'),
+            # 'Precision-weighted':precision_score(y_true, y_pred, average='weighted'), #
             # 'Precision-macro':precision_score(y_true, y_pred, average='macro'),
             # 'Precision-micro':precision_score(y_true, y_pred, average='micro'),
-            'Recall-weighted':recall_score(y_true, y_pred, average='weighted'),
+            # 'Recall-weighted':recall_score(y_true, y_pred, average='weighted'), #
             # 'Recall-macro':recall_score(y_true, y_pred, average='macro'),
             # 'Recall-micro':recall_score(y_true, y_pred, average='micro'),
             # 'AMI': adjusted_mutual_info_score(y_true, y_pred)
