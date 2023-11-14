@@ -65,9 +65,20 @@ class EmbedderHeterogeneous(torch.nn.Module):
     def get_embeddings(self, data):
         self.eval()
         #pred = self.forward(data) if edge embeddings needed
+        
+        if hasattr(data['student'], 'x'):
+            student_x = self.student_lin(data['student'].x) +  self.student_emb(data['student'].node_id)
+        else:
+            student_x = self.student_emb(data['student'].node_id)
+
+        if hasattr(data['item'], 'x'):
+            item_x = self.item_lin(data['item'].x) + self.item_emb(data['item'].node_id)
+        else:
+            item_x = self.item_emb(data['item'].node_id)
+            
         x_dict = {
-              'student': self.student_lin(data['student'].x) +  self.student_emb(data['student'].node_id),
-              'item': self.item_lin(data['item'].x) + self.item_emb(data['item'].node_id),
+              'student': student_x,
+              'item': item_x
             } 
 
         return x_dict

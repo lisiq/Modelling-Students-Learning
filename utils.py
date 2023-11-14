@@ -30,7 +30,7 @@ def load_data_heterogeneous(path):
     return df
 
 
-def create_data_object_heterogeneous(df, return_aux_data=False):
+def create_data_object_heterogeneous(df, return_aux_data=False, item_features=True, student_features=True):
     data = HeteroData()
 
     scales = df.scale
@@ -45,14 +45,16 @@ def create_data_object_heterogeneous(df, return_aux_data=False):
     # there seems to be students with different mother tongue and gender in different occasions
     df_student = df.groupby('studentId').agg({'age': 'mean', 'grade': 'mean',
                                               'motherTongue': mymode, 'Gender': mymode}).reset_index()
-    #rem_dup = df[['studentId']].drop_duplicates()
-    #rem_dup_index_student = rem_dup.index
-    #df_student = df[['motherTongue', 'Gender', 'age', 'grade']].iloc[rem_dup_index_student, :]
-    data['student'].x = torch.from_numpy(df_student[['motherTongue',  'Gender']].values).to(torch.float)
+    
+    if student_features:
+        data['student'].x = torch.from_numpy(df_student[['motherTongue',  'Gender']].values).to(torch.float)
+        
     rem_dup = df[['code', 'scale']].drop_duplicates()
     rem_dup_index = rem_dup.index
     #data['item'].x = torch.from_numpy(df[['scale']].values)[rem_dup_index].to(torch.float)
-    data['item'].x = scale_features[rem_dup_index] 
+    if item_features:
+        data['item'].x = scale_features[rem_dup_index] 
+        
     df_item = pd.DataFrame({ 'scale' : scales[rem_dup_index], 
                               'matrix': df.matrix[rem_dup_index],
                               'IRT_difficulty': df.IRT_difficulty[rem_dup_index],
@@ -208,8 +210,11 @@ def subgraph(input_data, index):
 
     # Add the node features
     # there seems to be students with different mother tongue and gender in different occasions
-    data['student'].x= input_data['student']['x']
-    data['item'].x = input_data['item']['x']
+    if hasattr(input_data['student'], 'x'):
+        data['student'].x = input_data['student']['x']
+    
+    if hasattr(input_data['item'], 'x'):
+        data['item'].x = input_data['item']['x']
 
     # Add the edge indices
     data['student', 'responds', 'item'].edge_index = input_data['student', 'responds', 'item'].edge_index[:, index]
