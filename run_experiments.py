@@ -14,8 +14,8 @@ parameters = {
     'model_type' : 'GNN', # IRT, GNN
     'hidden_dims': [16,8],
     'df_name': None,
-    'epochs': 1,
-    'learning_rate': 0.001,
+    'epochs': 10000,
+    'learning_rate': 0.005,
     'weight_decay': 0,
     # 'dropout': 0.4,
     'early_stopping': 200,
@@ -35,9 +35,9 @@ if __name__ == '__main__':
     for df_name in df_names:
         parameters["df_name"] = df_name
         create_tasks(
-            parameters,
-            repeat_experiment = repeat_experiment,
-            folder = fold
+                parameters,
+                repeat_experiment = repeat_experiment,
+                folder = fold
         )
 
     list_unfinished = find_unfinished(fold)
