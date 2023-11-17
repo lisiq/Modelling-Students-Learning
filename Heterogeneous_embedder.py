@@ -23,8 +23,8 @@ class EmbedderHeterogeneous(torch.nn.Module):
             ):
         super().__init__()
         self.edge_channel = edge_channel
-        self.student_lin = torch.nn.Linear(student_inchannel, hidden_channels[0])
-        self.item_lin = torch.nn.Linear(item_inchannel, hidden_channels[0])
+        self.student_lin = torch.nn.Linear(student_inchannel, hidden_channels[0]) if student_inchannel is not None else None
+        self.item_lin = torch.nn.Linear(item_inchannel, hidden_channels[0]) if item_inchannel is not None else None
         # Since the dataset does not come with rich features, we also learn two
         # embedding matrices for student and items:
         self.student_emb = torch.nn.Embedding(n_students, hidden_channels[0])
@@ -39,10 +39,20 @@ class EmbedderHeterogeneous(torch.nn.Module):
 
 
     def forward(self, data):
+        if self.student_lin is not None:
+            student_x = self.student_lin(data['student'].x) +  self.student_emb(data['student'].node_id)
+        else:
+            student_x = self.student_emb(data['student'].node_id)
+
+        if self.item_lin is not None:
+            item_x = self.item_lin(data['item'].x) + self.item_emb(data['item'].node_id)
+        else:
+            item_x = self.item_emb(data['item'].node_id)
+            
         x_dict = {
-          'student': self.student_lin(data['student'].x) +  self.student_emb(data['student'].node_id),
-          'item': self.item_lin(data['item'].x) + self.item_emb(data['item'].node_id),
-        } 
+              'student': student_x,
+              'item': item_x
+            } 
         
         x_dict = self.encoder(x_dict, data.edge_index_dict)#, data.edge_attr_dict)
         if self.edge_channel == None:
@@ -66,12 +76,12 @@ class EmbedderHeterogeneous(torch.nn.Module):
         self.eval()
         #pred = self.forward(data) if edge embeddings needed
         
-        if hasattr(data['student'], 'x'):
+        if self.student_lin is not None:
             student_x = self.student_lin(data['student'].x) +  self.student_emb(data['student'].node_id)
         else:
             student_x = self.student_emb(data['student'].node_id)
 
-        if hasattr(data['item'], 'x'):
+        if self.item_lin is not None:
             item_x = self.item_lin(data['item'].x) + self.item_emb(data['item'].node_id)
         else:
             item_x = self.item_emb(data['item'].node_id)

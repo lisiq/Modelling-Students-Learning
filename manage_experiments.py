@@ -135,26 +135,30 @@ def perform_cross_validation(data, parameters, save_embeddings=False, save_subgr
         if parameters['model_type'] == 'GNN':
             test_loop = test_embedder_heterogeneous
             train_loop = train_embedder_heterogeneous
+            
+            student_inchannel = data['student'].x.size(1) if hasattr(data['student'], 'x') else None
+            item_inchannel = data['item'].x.size(1) if hasattr(data['item'], 'x') else None
+            
             if parameters['df_name'] in ['synthetic.salamoia']:
                     model = EmbedderHeterogeneous( 
-                    n_students =  data['student'].x.size(0),
-                    n_items = data['item'].x.size(0),
-                    student_inchannel = data['student'].x.size(1),
-                    item_inchannel = data['item'].x.size(1),
-                    hidden_channels=parameters['hidden_dims'],
-                    edge_channel=None,
+                    n_students =  data['student'].node_id.size(0),
+                    n_items = data['item'].node_id.size(0),
+                    student_inchannel = student_inchannel,
+                    item_inchannel = item_inchannel,
+                    hidden_channels = parameters['hidden_dims'],
+                    edge_channel = None,
                     metadata=data.metadata()
                     ).to(device)
             else:
                 edge_dim = data['student', 'responds', 'item'].edge_attr.shape[1]
                 model = EmbedderHeterogeneous( 
-                    n_students =  data['student'].x.size(0),
-                    n_items = data['item'].x.size(0),
-                    student_inchannel = data['student'].x.size(1),
-                    item_inchannel = data['item'].x.size(1),
-                    hidden_channels=parameters['hidden_dims'],
-                    edge_channel=edge_dim,
-                    metadata=data.metadata()
+                    n_students = data['student'].node_id.size(0),
+                    n_items = data['item'].node_id.size(0),
+                    student_inchannel = student_inchannel,
+                    item_inchannel = item_inchannel,
+                    hidden_channels = parameters['hidden_dims'],
+                    edge_channel = edge_dim,
+                    metadata = data.metadata()
                     ).to(device)
 
         elif parameters['model_type'] == 'IRT':
@@ -223,7 +227,7 @@ def perform_cross_validation(data, parameters, save_embeddings=False, save_subgr
             data = data.to('cpu')
 
         # Results
-        # losses_dict = {f'losses_{fold}': losses}
+        losses_dict = {f'losses_{fold}': losses}
         # Comment this out to save also the embeddings
         best_train_acc = test_loop(model, train_subgraph_data.to(device), fold, 'train')
         print(f'Train balanced accuracy:{best_train_acc["Balanced Accuracy"+f"_{fold}_train"]:.4f}')
@@ -231,7 +235,7 @@ def perform_cross_validation(data, parameters, save_embeddings=False, save_subgr
                             **val_b_, 
                             **test_b_,
                             **best_train_acc,  
-                            # **losses_dict
+                            **losses_dict
                             }) 
         
         if save_embeddings:
