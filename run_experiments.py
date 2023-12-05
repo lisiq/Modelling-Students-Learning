@@ -21,7 +21,8 @@ parameters = {
     'early_stopping': 200,
     'n_splits': 10,
     'device': 'cuda',
-    'batch_size': 1024
+    'batch_size': 1024.
+    'neighbours':[10, 10]
     }
 
 

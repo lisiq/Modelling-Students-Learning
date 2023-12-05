@@ -130,9 +130,9 @@ def load_data_synthetic(fname):
 
 def generate_data_object_synthetic(n_students,n_tasks,n_task_per_student,  error_proness_denom = 2, probabilistic=True, number_of_tasks_per_students_is_max=False):
 
-    edge_indices, y= generate_synthetic_student_data_interactions_heterogeneous(n_students,n_tasks,n_task_per_student,  error_proness_denom , probabilistic, number_of_tasks_per_students_is_max)
+    edge_indices, y, students_ability, code_difficulty= generate_synthetic_student_data_interactions_heterogeneous(n_students,n_tasks,n_task_per_student,  error_proness_denom , probabilistic, number_of_tasks_per_students_is_max)
     
-    data = create_data_object_synthetic_heterogeneous(n_students,n_tasks,edge_indices,y)
+    data = create_data_object_synthetic_heterogeneous(n_students,n_tasks,edge_indices,y, students_ability, code_difficulty)
     return data
 
 
@@ -170,16 +170,21 @@ def generate_synthetic_student_data_interactions_heterogeneous(n_students,n_task
                     y.append(1)
                 else: 
                     y.append(0)   
-    return edge_indices, y
+    return edge_indices, y, list(students.values()), list(code.values())
 
 
 from torch_geometric.data import HeteroData
-def create_data_object_synthetic_heterogeneous(n_students,n_tasks,edge_indices,y):
+def create_data_object_synthetic_heterogeneous(n_students,n_tasks,edge_indices,y, students_ability, code_difficulty):
     data  = HeteroData()
 
     # Save node indices
     data['student'].node_id = torch.arange(n_students)
     data['item'].node_id = torch.arange(n_tasks)
+
+    # Save difficulty and ability
+    data['student'].ability = torch.tensor(students_ability)
+    data['item'].difficulty = torch.tensor(code_difficulty)
+
 
     # Add the node features
     # there seems to be students with different mother tongue and gender in different occasions

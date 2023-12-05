@@ -102,12 +102,12 @@ def perform_cross_validation(data, parameters, save_embeddings=False, save_subgr
 
         if final_fit and fold == 1: # for final fit, just fit once
             break
+
         _, _, test_index, val_index = train_test_split(test_index,
                                         test_index,
                                         test_size=0.5, 
                                         random_state=random_state)
         
-
         # define train test val subgraphs
         train_subgraph_data = subgraph(data, train_index)
         test_subgraph_data = subgraph(data, test_index).to(device)
@@ -216,7 +216,7 @@ def perform_cross_validation(data, parameters, save_embeddings=False, save_subgr
                 test_b_ = test_loop(model, test_subgraph_data, fold, 'test')
 
                 if save_embeddings: 
-                    saved_embedding = model.get_embeddings(data.to(device))            
+                    saved_embedding = model.get_embeddings(data.to(device))      
 
             else:
                 early_stopping += 1
