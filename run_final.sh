@@ -4,4 +4,5 @@ papermill -p IRT_DIMS 0 -p DATASET full GNN_final.ipynb | jupyter-nbconvert --st
 papermill -p IRT_DIMS 0 -p DATASET full -p ITEM_FEATURES True GNN_final.ipynb | jupyter-nbconvert --stdin --no-input --to html --output vis/GNN_batch_SAGE_full_scales.html > logs/GNN_batch_SAGE_full_scales.log
 papermill -p IRT_DIMS 0 -p DATASET matrix GNN_final.ipynb | jupyter-nbconvert --stdin --no-input --to html --output vis/GNN_batch_SAGE_matrix.html > logs/GNN_batch_SAGE_matrix.log
 papermill -p IRT_DIMS 0 -p DATASET topic GNN_final.ipynb | jupyter-nbconvert --stdin --no-input --to html --output vis/GNN_batch_SAGE_topic.html > logs/GNN_batch_SAGE_topic.log
+
 ./run_plots.sh

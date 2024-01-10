@@ -233,12 +233,14 @@ def visualize_items(model, data, device, df_item, OUTNAME, dims=('x', 'y'), equa
     save_plot(X, 'IRT_difficulty', 'Difficulty', figname, x='x', y='y', plot_type='sct', equal_axes=equal_axes, palette='viridis')
     save_plot(X, 'IRT1_difficulty', 'Difficulty', figname, x='x', y='y', plot_type='sct', equal_axes=equal_axes, palette='viridis')
     save_plot(X, 'IRT1_discrimination', 'Discrimination', figname, x='x', y='y', plot_type='sct', equal_axes=equal_axes, palette='viridis')
+    save_plot(X, 'IRT1_discrimination_transf', 'Discrimination_transformed', figname, x='x', y='y', plot_type='sct', equal_axes=equal_axes, palette='viridis')
 
     save_plot(X, 'domain', 'Subject Domain', figname, x='z', y='y', plot_type='sct', equal_axes=equal_axes, with_legend=False)
     save_plot(X, 'scale', 'Competence Domain', figname, x='z', y='y', plot_type='sct', equal_axes=equal_axes)
     save_plot(X, 'IRT_difficulty', 'Difficulty', figname, x='z', y='y', plot_type='sct', equal_axes=equal_axes, palette='viridis')
     save_plot(X, 'IRT1_difficulty', 'Difficulty', figname, x='z', y='y', plot_type='sct', equal_axes=equal_axes, palette='viridis')
     save_plot(X, 'IRT1_discrimination', 'Discrimination', figname, x='z', y='y', plot_type='sct', equal_axes=equal_axes, palette='viridis')
+    save_plot(X, 'IRT1_discrimination_transf', 'Discrimination_transformed', figname, x='z', y='y', plot_type='sct', equal_axes=equal_axes, palette='viridis')
 
     figname = f'{OUTNAME}_dim_items'
     for i, mydim in enumerate(['x', 'y', 'z']):
