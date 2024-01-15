@@ -84,14 +84,17 @@ def compute_domain_distances(model, data, df_item, device, shuffle=False, seed=1
     # print(df_item.groupby('scale').count()['index'])
     nscales = len(unique_scales)
     mean_distances = np.zeros((nscales, nscales))
-    within = []
-    between = []
-    
+    within_domain = []
+    between_domain = []
+    within_between_scale = np.zeros((len(unique_scales), len(unique_scales)))
     
     if shuffle:
         if seed > 0:
-            np.random.seed(seed)  
-        np.random.shuffle(domains)
+            np.random.seed(seed) 
+        sampled_df['scale'] = sampled_df['scale'].sample(frac=1).values
+        #np.random.shuffle(domains)
+    else: 
+        print(sampled_df.scale.value_counts())
 
     for i, scale_i in enumerate(unique_scales):
         for j, scale_j in enumerate(unique_scales):
@@ -108,79 +111,29 @@ def compute_domain_distances(model, data, df_item, device, shuffle=False, seed=1
                     
             if i > j:
                 mean_distances[j, i] = mean_distances[i, j]
-               
+                                    
             domain_i = domains[select_i][0]
             domain_j = domains[select_j][0]
             
             if domain_i == domain_j: 
-                within.append(mean_distances[i, j])
+                within_domain.append(mean_distances[i, j])
             else:
-                between.append(mean_distances[i, j])
-                
-    within_domain = np.mean(within)      
-    between_domain = np.mean(between)      
-
-    return within_domain, between_domain, mean_distances
-
-@torch.no_grad()
-def compute_scale_distances(model, data, df_item, device, shuffle=False, seed=1, NSAMPLES=1000):
-    
-    df_item = df_item.reset_index()
-
-    sampled_df = df_item.groupby('scale', as_index=False).apply(lambda x: x.sample(np.min((len(x), NSAMPLES))))
-
-    domains = df_item['domain'].values
-    unique_domains = df_item['domain'].dropna().unique()
-    unique_scales = df_item['scale'].dropna().unique()
-
-    try:
-        pred, z_dict, _ = model(data)
-        embedding = z_dict['item'].detach().cpu().numpy()
-    except:
-        z_dict = model.get_embeddings(data)
-        embedding = z_dict['item']    
-    
-    # print counts
-    # print(df_item.groupby('scale').count()['index'])
-    nscales = len(unique_scales)
-    mean_distances = np.zeros((nscales, nscales))
-    within = []
-    between = []
-    
-    
-    if shuffle:
-        if seed > 0:
-            np.random.seed(seed)  
-        np.random.shuffle(domains)
+                between_domain.append(mean_distances[i, j])
 
     for i, scale_i in enumerate(unique_scales):
-        for j, scale_j in enumerate(unique_scales):
-               
-            if i >= j:
-                select_i = sampled_df.loc[sampled_df['scale'] == scale_i].index.get_level_values(1)
-                select_j = sampled_df.loc[sampled_df['scale'] == scale_j].index.get_level_values(1)
-                X_i = embedding[select_i, :]
-                X_j = embedding[select_j, :]
-                D = pairwise_distances(X_i, X_j)
-                mean_distances[i, j] = np.mean(D)
-            else:
-                continue
-                    
-            if i > j:
-                mean_distances[j, i] = mean_distances[i, j]
-               
-            domain_i = domains[select_i][0]
-            domain_j = domains[select_j][0]
-            
-            if domain_i == domain_j: 
-                within.append(mean_distances[i, j])
-            else:
-                between.append(mean_distances[i, j])
-                
-    within_domain = np.mean(within)      
-    between_domain = np.mean(between)      
+        within_between_scale[1:, i] = np.delete(mean_distances[i, :], i) 
+        within_between_scale[0, i] = mean_distances[i, i] 
 
-    return within_domain, between_domain, mean_distances
+    #print('within_between')
+    #print(within_between_scale)             
+    #print('mean distances')
+    #print(mean_distances)
+                
+    within_domain = np.mean(within_domain)      
+    between_domain = np.mean(between_domain)
+    
+
+    return within_domain, between_domain, mean_distances, unique_scales, within_between_scale
 
 
 @torch.no_grad()
@@ -190,9 +143,9 @@ def evaluate_items(model, data, df_item, device, shuffle=False, seed=1, minsampl
                                         'matrix', shuffle=shuffle, seed=seed, 
                                         minsamples=minsamples)
     
-    within_domain, between_domain, mean_distances = compute_domain_distances(model, data, df_item, device, shuffle=shuffle, seed=seed)
+    within_domain, between_domain, mean_distances, unique_scales, within_between_scale = compute_domain_distances(model, data, df_item, device, shuffle=shuffle, seed=seed)
     
-    return scores, within_domain, between_domain, mean_distances
+    return scores, within_domain, between_domain, mean_distances, unique_scales, within_between_scale
 
 
 @torch.no_grad()

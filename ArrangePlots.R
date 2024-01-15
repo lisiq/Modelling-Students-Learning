@@ -60,8 +60,8 @@ if (T) {
     'E' = 'SAGE_full_items/type_sct-z-y-var_scale.png',
     
     'F' = 'SAGE_full_dim_items/type_reg-x-None-var_IRT_difficulty.png',
-    'G' = 'SAGE_full_items/type_sct-x-y-var_IRT_difficulty.png',
-    'H' = 'SAGE_full_items/type_sct-z-y-var_IRT_difficulty.png',
+    'G' = 'SAGE_full_items/type_sct-x-y-var_IRT1_difficulty.png',
+    'H' = 'SAGE_full_items/type_sct-z-y-var_IRT1_difficulty.png',
     'I' = 'SAGE_full_items/type_sct-x-y-var_IRT1_discrimination.png',
     'J' = 'SAGE_full_items/type_sct-z-y-var_IRT1_discrimination.png'
   )

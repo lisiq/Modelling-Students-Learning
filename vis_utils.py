@@ -465,6 +465,58 @@ def visualize_edges(model, data, edge_indices, device, df, OUTNAME, **kwargs):
     plt.savefig(f'./vis/{OUTNAME}_edges_PCA.png', dpi=DPI)
 
 def plot_clustering(grouping_variable, target_variable, model, data, df_item, device, OUTNAME, minsamples=100, nperms=NPERMS):
+
+    scores_dict = {'CH': [], 'DB':[]}
+
+    for perm in range(nperms):
+        #print(perm)
+        scores = compute_clustering_indices(model, data, df_item, device, grouping_variable, 
+                                            target_variable, shuffle=perm>0, seed=0, minsamples=minsamples)
+        [ scores_dict[key].append(scores[key]) for key in scores_dict]
+
+    for i, index in enumerate(scores_dict):
+        scores_df = pd.DataFrame(scores_dict[index])
+        scores_df['perm'] = scores_df.index     
+        scores_df = pd.melt(scores_df, id_vars='perm', value_name='index', var_name=grouping_variable)
+        scores_df['random'] = 'Observed data'
+        scores_df.loc[ scores_df['perm'] > 0, 'random'] = 'Shuffled data'
+        scores_df['scale'] = scores_df['scalexdifficulty'].str.split().str[0]
+        scores_df['difficulty_bin'] = scores_df['scalexdifficulty'].str.split().str[1:].str.join(' ')
+        scores_df_ = scores_df.dropna().copy()
+    
+        fig, axes = plt.subplots(ncols=6, nrows=2, figsize=FIGSIZE, sharex=False, sharey=True)
+
+        for i, scale in enumerate(scores_df['scale'].unique()):
+            ax = plt.subplot(2, 6, i+1)
+            scores_df = scores_df_.loc[ scores_df_['scale'] == scale, :]
+            maxscore_df = scores_df.groupby(['perm','random','difficulty_bin'])['index'].max().reset_index()
+            vals = maxscore_df.loc[maxscore_df.random == 'Shuffled data']['index']
+            thr = np.quantile(vals, 1 - ALPHALEVEL)
+            ax1 = sns.lineplot(ax=ax, data=scores_df.query('`random` == "Observed data"'), #.sort_values('index'), 
+                         x=grouping_variable, y='index', 
+                         color='black')
+            ax2 = sns.scatterplot(ax=ax, data=scores_df.query('`random` == "Shuffled data"'), x=grouping_variable, y='index',
+                            hue='random', s=3, alpha=0.5) # + ' ' + target_variable + ' ' + index)
+            ax.set_title(scale)
+            ax.set_xlabel('Difficulty')
+            ax.set_ylabel('Cluster Validity Index Value')
+            ax.axhline(thr, color = 'red', linestyle='--')
+            ax.set(xticklabels=[])
+            ax.legend_.remove()
+            ax.label_outer()
+
+        fig.legend( labels=['Observed \ndata', '_', '_', 'Shuffled \ndata', 'Significance \nthreshold'], 
+                   loc=(0.84, 0.2), fontsize=13)
+        ax = plt.subplot(2, 6, 12)
+        ax.axis('off')
+
+
+        fig.tight_layout()
+        plt.savefig(f'./vis/{OUTNAME}_{grouping_variable}_{target_variable}_clustering_{index}.png')
+        plt.close()
+    
+        
+def plot_clustering_old(grouping_variable, target_variable, model, data, df_item, device, OUTNAME, minsamples=100, nperms=NPERMS):
     
     scores_dict = {'CH': [], 'DB':[]}
 
