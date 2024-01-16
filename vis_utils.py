@@ -492,10 +492,10 @@ def plot_clustering(grouping_variable, target_variable, model, data, df_item, de
             maxscore_df = scores_df.groupby(['perm','random','difficulty_bin'])['index'].max().reset_index()
             vals = maxscore_df.loc[maxscore_df.random == 'Shuffled data']['index']
             thr = np.quantile(vals, 1 - ALPHALEVEL)
-            ax1 = sns.lineplot(ax=ax, data=scores_df.query('`random` == "Observed data"'), #.sort_values('index'), 
+            sns.lineplot(ax=ax, data=scores_df.query('`random` == "Observed data"'), #.sort_values('index'), 
                          x=grouping_variable, y='index', 
                          color='black')
-            ax2 = sns.scatterplot(ax=ax, data=scores_df.query('`random` == "Shuffled data"'), x=grouping_variable, y='index',
+            sns.scatterplot(ax=ax, data=scores_df.query('`random` == "Shuffled data"'), x=grouping_variable, y='index',
                             hue='random', s=3, alpha=0.5) # + ' ' + target_variable + ' ' + index)
             ax.set_title(scale)
             ax.set_xlabel('Difficulty')
