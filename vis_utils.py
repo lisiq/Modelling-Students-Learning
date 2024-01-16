@@ -23,7 +23,7 @@ POINTSIZE = 2
 LINEWIDTH = 0.5
 PERCENTILES = (0.01, 99.99)
 LEGEND_SIZE = 12
-MAX_PCS = 8
+MAX_PCS = 0 #8
 
 FIGSIZE = (2*6.4, 2*4.8) #width, height
 FIGSIZE2 = (2*6.4, 4*4.8)
@@ -197,12 +197,13 @@ def visualize_students(model, data, device, df_student, OUTNAME, dims=('x', 'y')
 
     fig = plt.figure()
     PC_values = np.arange(dimred.n_components_) + 1
-    plt.plot(PC_values, dimred.explained_variance_ratio_, 'o-', linewidth=2, color='blue')
-    plt.xticks(PC_values[:MAX_PCS])
-    plt.xlim(0, max(PC_values[:MAX_PCS])+1)
+    plt.plot(PC_values, dimred.explained_variance_ratio_*100, 'o-', linewidth=2, color='blue')
+    if MAX_PCS > 0:
+        plt.xticks(PC_values[:MAX_PCS])
+        plt.xlim(0, max(PC_values[:MAX_PCS])+1)
     plt.title('Scree Plot')
     plt.xlabel('Principal Component')
-    plt.ylabel('Variance Explained')        
+    plt.ylabel('Variance Explained (%)')        
     fig.tight_layout()
     plt.savefig(f'./vis/{OUTNAME}_students_PCA.png', dpi=DPI)
     #myresults.add_fig('students_PCA', plt.gca())
@@ -233,14 +234,14 @@ def visualize_items(model, data, device, df_item, OUTNAME, dims=('x', 'y'), equa
     save_plot(X, 'IRT_difficulty', 'Difficulty', figname, x='x', y='y', plot_type='sct', equal_axes=equal_axes, palette='viridis')
     save_plot(X, 'IRT1_difficulty', 'Difficulty', figname, x='x', y='y', plot_type='sct', equal_axes=equal_axes, palette='viridis')
     save_plot(X, 'IRT1_discrimination', 'Discrimination', figname, x='x', y='y', plot_type='sct', equal_axes=equal_axes, palette='viridis')
-    save_plot(X, 'IRT1_discrimination_transf', 'Discrimination_transformed', figname, x='x', y='y', plot_type='sct', equal_axes=equal_axes, palette='viridis')
+    save_plot(X, 'IRT1_discrimination_transf', 'Discrimination (transformed)', figname, x='x', y='y', plot_type='sct', equal_axes=equal_axes, palette='viridis')
 
     save_plot(X, 'domain', 'Subject Domain', figname, x='z', y='y', plot_type='sct', equal_axes=equal_axes, with_legend=False)
     save_plot(X, 'scale', 'Competence Domain', figname, x='z', y='y', plot_type='sct', equal_axes=equal_axes)
     save_plot(X, 'IRT_difficulty', 'Difficulty', figname, x='z', y='y', plot_type='sct', equal_axes=equal_axes, palette='viridis')
     save_plot(X, 'IRT1_difficulty', 'Difficulty', figname, x='z', y='y', plot_type='sct', equal_axes=equal_axes, palette='viridis')
     save_plot(X, 'IRT1_discrimination', 'Discrimination', figname, x='z', y='y', plot_type='sct', equal_axes=equal_axes, palette='viridis')
-    save_plot(X, 'IRT1_discrimination_transf', 'Discrimination_transformed', figname, x='z', y='y', plot_type='sct', equal_axes=equal_axes, palette='viridis')
+    save_plot(X, 'IRT1_discrimination_transf', 'Discrimination (transformed)', figname, x='z', y='y', plot_type='sct', equal_axes=equal_axes, palette='viridis')
 
     figname = f'{OUTNAME}_dim_items'
     for i, mydim in enumerate(['x', 'y', 'z']):
@@ -249,6 +250,7 @@ def visualize_items(model, data, device, df_item, OUTNAME, dims=('x', 'y'), equa
         save_plot(X, 'IRT_difficulty', 'Difficulty', figname, x=mydim, plot_type='reg')
         save_plot(X, 'IRT1_difficulty', 'Difficulty', figname, x=mydim, plot_type='reg')
         save_plot(X, 'IRT1_discrimination', 'Discrimination', figname, x=mydim, plot_type='reg')
+        save_plot(X, 'IRT1_discrimination_transf', 'Discrimination (transformed)', figname, x=mydim, plot_type='reg')
         myresults.add_stats('item_difficulty_%s'%mydim, X['IRT_difficulty'], X[mydim])
         myresults.add_stats('item_difficulty1_%s'%mydim, X['IRT1_difficulty'], X[mydim])
         myresults.add_stats('item_discrimination1_%s'%mydim, X['IRT1_discrimination'], X[mydim])
@@ -256,12 +258,13 @@ def visualize_items(model, data, device, df_item, OUTNAME, dims=('x', 'y'), equa
     fig = plt.figure()
     PC_values = np.arange(dimred.n_components_) + 1
     #plt.sca(axes[1, 1])
-    plt.plot(PC_values, dimred.explained_variance_ratio_, 'o-', linewidth=2, color='blue')
-    plt.xticks(PC_values[:MAX_PCS])
-    plt.xlim(0, max(PC_values[:MAX_PCS])+1)
+    plt.plot(PC_values, dimred.explained_variance_ratio_*100, 'o-', linewidth=2, color='blue')
+    if MAX_PCS > 0:
+        plt.xticks(PC_values[:MAX_PCS])
+        plt.xlim(0, max(PC_values[:MAX_PCS])+1)
     plt.title('Scree Plot')
     plt.xlabel('Principal Component')
-    plt.ylabel('Variance Explained')
+    plt.ylabel('Variance Explained (%)')
     fig.tight_layout()
     
     plt.savefig(f'./vis/{OUTNAME}_items_PCA.png', dpi=DPI)
@@ -515,7 +518,43 @@ def plot_clustering(grouping_variable, target_variable, model, data, df_item, de
         plt.savefig(f'./vis/{OUTNAME}_{grouping_variable}_{target_variable}_clustering_{index}.png')
         plt.close()
     
-        
+def doanim(HUELABEL, model, data, device, edge_indices, df, OUTNAME, EQUAL_AXES = False, html=True):
+    
+    MINAGE, MAXAGE = np.percentile(df.age, np.array([1, 99])) #df.age.min(), df.age.max() #
+    #MAXAGE = MAXAGE 
+    AGERANGE= MAXAGE - MINAGE - AGEDELTA
+
+    def init():
+        pass
+        visualize_edges_age(model, data, edge_indices, 
+                        device, axes, df, OUTNAME, equal_axes=EQUAL_AXES, 
+                        age_window=(MINAGE, MINAGE+AGEDELTA),
+                        age_lim=(MINAGE, MAXAGE),
+                        aggregate=True,
+                        hue_label = HUELABEL
+                       )             
+        #fig.tight_layout()
+
+    def update(frame):
+        [ax.clear() for ax in axes]
+        visualize_edges_age(model, data, edge_indices, 
+                            device, axes, df, OUTNAME, 
+                            equal_axes=EQUAL_AXES, 
+                            age_window=(MINAGE + frame*AGERANGE/NFRAMES, MINAGE + frame*AGERANGE/NFRAMES + AGEDELTA), 
+                            age_lim=(MINAGE, MAXAGE),
+                            aggregate=True,
+                            hue_label = HUELABEL
+                   )        
+        #fig.tight_layout()
+    fig, axes = plt.subplots(1, 2, figsize=FIGSIZE_VID)
+    ani = FuncAnimation(fig, update, frames=NFRAMES, init_func=init, blit=False, interval=INTERVAL)
+    
+    return ani
+
+
+##################################################################
+# deprecated
+##################################################################
 def plot_clustering_old(grouping_variable, target_variable, model, data, df_item, device, OUTNAME, minsamples=100, nperms=NPERMS):
     
     scores_dict = {'CH': [], 'DB':[]}
@@ -555,37 +594,4 @@ def plot_clustering_old(grouping_variable, target_variable, model, data, df_item
         plt.savefig(f'./vis/{OUTNAME}_{grouping_variable}_{target_variable}_clustering_{index}.png')
         plt.close()
 
-    
-def doanim(HUELABEL, model, data, device, edge_indices, df, OUTNAME, EQUAL_AXES = False, html=True):
-    
-    MINAGE, MAXAGE = np.percentile(df.age, np.array([1, 99])) #df.age.min(), df.age.max() #
-    #MAXAGE = MAXAGE 
-    AGERANGE= MAXAGE - MINAGE - AGEDELTA
-
-    def init():
-        pass
-        visualize_edges_age(model, data, edge_indices, 
-                        device, axes, df, OUTNAME, equal_axes=EQUAL_AXES, 
-                        age_window=(MINAGE, MINAGE+AGEDELTA),
-                        age_lim=(MINAGE, MAXAGE),
-                        aggregate=True,
-                        hue_label = HUELABEL
-                       )             
-        #fig.tight_layout()
-
-    def update(frame):
-        [ax.clear() for ax in axes]
-        visualize_edges_age(model, data, edge_indices, 
-                            device, axes, df, OUTNAME, 
-                            equal_axes=EQUAL_AXES, 
-                            age_window=(MINAGE + frame*AGERANGE/NFRAMES, MINAGE + frame*AGERANGE/NFRAMES + AGEDELTA), 
-                            age_lim=(MINAGE, MAXAGE),
-                            aggregate=True,
-                            hue_label = HUELABEL
-                   )        
-        #fig.tight_layout()
-    fig, axes = plt.subplots(1, 2, figsize=FIGSIZE_VID)
-    ani = FuncAnimation(fig, update, frames=NFRAMES, init_func=init, blit=False, interval=INTERVAL)
-    
-    return ani
-
+ 

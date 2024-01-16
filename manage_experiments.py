@@ -160,7 +160,7 @@ def perform_cross_validation(data, parameters, save_embeddings=False, save_subgr
                     edge_channel = edge_dim,
                     metadata = data.metadata()
                     ).to(device)
-
+                
         elif parameters['model_type'] == 'IRT':
             edge_dim = data['student', 'responds', 'item'].edge_attr.shape[1]
             lambda1 = parameters['lambda1'] if 'lambda1' in parameters else 0

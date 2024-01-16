@@ -22,6 +22,16 @@ class EmbedderHeterogeneous(torch.nn.Module):
             # heads
             ):
         super().__init__()
+        
+        print('Parameters')
+        print({'n_students': n_students,
+              'n_items': n_items,
+              'student_inchannel': student_inchannel,
+              'item_inchannel': item_inchannel,
+              'hidden_channels': hidden_channels,
+              'edge_channel': edge_channel
+              })
+        
         self.edge_channel = edge_channel
         self.student_lin = torch.nn.Linear(student_inchannel, hidden_channels[0]) if student_inchannel is not None else None
         self.item_lin = torch.nn.Linear(item_inchannel, hidden_channels[0]) if item_inchannel is not None else None
@@ -32,7 +42,7 @@ class EmbedderHeterogeneous(torch.nn.Module):
         self.encoder = GNNEncoder(hidden_channels)
         self.encoder = to_hetero(self.encoder, metadata , aggr='mean')
         if edge_channel == None:
-            self.classifier = Classifier_heterogeneous(hidden_channels[-1],0)
+            self.classifier = Classifier_heterogeneous(hidden_channels[-1], 0)
         else:
             # self.classifier = Classifier_heterogeneous(2 * hidden_channels[-1] + edge_channel)
             self.classifier = Classifier_heterogeneous(hidden_channels[-1], edge_channel)

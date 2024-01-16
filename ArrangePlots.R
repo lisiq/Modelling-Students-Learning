@@ -68,19 +68,25 @@ if (T) {
 
 
   distances_fig_list = list(
-    'D' = 'SAGE_full_bw.png'
+    'D' = 'SAGE_full_bw.png' # between domain vs within domain distance
   )
   
+  # show the effect of competences
   cluster_fig_list = list(
     'A' = 'SAGE_full_bw_random_CH.png',
     'D' = 'SAGE_full_bw_random_DB.png',
-    'B' = 'SAGE_full_scalexdifficulty_matrix_clustering_CH.png',
-    'E' = 'SAGE_full_scalexdifficulty_matrix_clustering_DB.png',
-    'C' = 'SAGE_full_scalexdifficulty_topic_clustering_CH.png',
-    'F' = 'SAGE_full_scalexdifficulty_topic_clustering_DB.png'
+    'C' = 'SAGE_full_scalexdifficulty_matrix_clustering_CH.png',
+    'D' = 'SAGE_full_scalexdifficulty_matrix_clustering_DB.png',
   )
-
-  cluster_supp_fig_list = list(
+  
+  # show the effect of topics
+  cluster_supp_fig_list1 = list(
+    'A' = 'SAGE_full_scalexdifficulty_topic_clustering_CH.png',
+    'B' = 'SAGE_full_scalexdifficulty_topic_clustering_DB.png'
+  )
+  
+  # show that the similarities are not due to being in the same session
+  cluster_supp_fig_list2 = list(
     'A' = 'SAGE_matrix_scalexdifficulty_matrix_clustering_CH.png',
     'B' = 'SAGE_matrix_scalexdifficulty_matrix_clustering_DB.png',
     'C' = 'SAGE_topic_scalexdifficulty_topic_clustering_CH.png',
@@ -108,7 +114,8 @@ if (T) {
   
   save_fig("Fig_Items.png", item_fig_list, nrow=2, ncol=5)
   save_fig("Fig_Cluster.png", cluster_fig_list, nrow=3, ncol=2)
-  save_fig("Fig_ClusterSupp.png", cluster_supp_fig_list, nrow=2, ncol=2)
+  save_fig("Fig_ClusterSupp1.png", cluster_supp_fig_list1, nrow=2, ncol=2)
+  save_fig("Fig_ClusterSupp2.png", cluster_supp_fig_list1, nrow=2, ncol=1)
   save_fig("Fig_Students.png", student_fig_list, nrow=2, ncol=3)
   #save_fig("Fig_Edges.png", edge_fig_list, nrow=2, ncol=2)
   
