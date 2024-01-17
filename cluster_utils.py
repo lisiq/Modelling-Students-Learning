@@ -71,9 +71,10 @@ def compute_domain_distances(model, data, df_item, device, shuffle=False, seed=1
     nsamples = min(minsamples, nsamples)
     
     # number of sampled items per scale
-    sampled_df = df_item.groupby('scale', as_index=False).apply(lambda x: x.sample(np.min((len(x), nsamples)))).copy()
-    print(df_item)
-    print(sampled_df)
+    sampled_df = df_item.groupby('scale', as_index=False).apply(lambda x: x.sample(np.min((len(x), nsamples)))).drop(columns='index').reset_index().copy()
+    #print(df_item.shape)
+    #print(df_item)
+    #print(sampled_df)
     unique_domains = df_item['domain'].dropna().unique()
     unique_scales = df_item['scale'].dropna().unique()
 
@@ -83,7 +84,10 @@ def compute_domain_distances(model, data, df_item, device, shuffle=False, seed=1
     except:
         z_dict = model.get_embeddings(data)
         embedding = z_dict['item']    
-    embedding = embedding[sampled_df.index, :]
+    #print(embedding.shape)
+    embedding = embedding[sampled_df.level_1, :]
+    #print(embedding.shape)
+
     sampled_df = sampled_df.reset_index()
     # print counts
     # print(df_item.groupby('scale').count()['index'])
@@ -100,18 +104,19 @@ def compute_domain_distances(model, data, df_item, device, shuffle=False, seed=1
         
         #np.random.shuffle(domains)
         # remap domains
-        print(domain_mapping)
         domain_mapping = df_item[['scale','domain']].drop_duplicates()
+        #print(domain_mapping)
         domain_mapping['domain'] = domain_mapping['domain'].sample(frac=1).values
-        domain_mapping.set_index('scale')['domain'].to_dict()
-        print(domain_mapping)
+        domain_mapping = domain_mapping.set_index('scale')['domain'].to_dict()
+        #print(domain_mapping)
         sampled_df['domain'] = sampled_df['scale'].apply(lambda x: domain_mapping[x])
         
     else: 
         print(df_item.scale.value_counts())
         print(sampled_df[['scale','domain']].scale.value_counts())
     
-    print(sampled_df.head(30))
+    #print(sampled_df.head(30))
+    domains = sampled_df.domain.values
     
     for i, scale_i in enumerate(unique_scales):
         for j, scale_j in enumerate(unique_scales):
@@ -119,10 +124,10 @@ def compute_domain_distances(model, data, df_item, device, shuffle=False, seed=1
             if i >= j:
                 select_i = sampled_df.loc[sampled_df['scale'] == scale_i].index #.get_level_values(1)
                 select_j = sampled_df.loc[sampled_df['scale'] == scale_j].index #.get_level_values(1)
+                #print(select_i)
                 X_i = embedding[select_i, :]
                 X_j = embedding[select_j, :]
                 D = pairwise_distances(X_i, X_j)
-                print(X_i.shape)
                 try:
                     mean_distances[i, j] = np.mean(D)
                 except:
@@ -136,7 +141,8 @@ def compute_domain_distances(model, data, df_item, device, shuffle=False, seed=1
             domain_i = domains[select_i][0]
             domain_j = domains[select_j][0]
             
-            print(domain_i, domain_j)
+            #print(scale_i, scale_j)
+            #print(domain_i, domain_j)
             if domain_i == domain_j: 
                 within_domain.append(mean_distances[i, j])
             else:
@@ -150,11 +156,7 @@ def compute_domain_distances(model, data, df_item, device, shuffle=False, seed=1
     #print(within_between_scale)             
     #print('mean distances')
     #print(mean_distances)
-    print("within")
-    print(within_domain)
     within_domain = np.mean(within_domain)      
-    print("between")
-    print(between_domain)
     between_domain = np.mean(between_domain)
     
 
