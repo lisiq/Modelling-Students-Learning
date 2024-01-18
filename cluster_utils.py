@@ -12,13 +12,15 @@ from torch.autograd import grad
 from torch.autograd.functional import jacobian
 from torch.nn import Linear, MSELoss
 from torch_geometric.nn import to_hetero
+from sklearn.decomposition import PCA
 
+dimred = PCA(whiten=False)
 mse = MSELoss(reduction='mean')
 softmax = torch.nn.Softmax(dim=1)
 
 @torch.no_grad()
 def compute_clustering_indices(model, data, df_item, device, grouping_variable, 
-                               target_variable, shuffle=False, seed=1, minsamples=10):
+                               target_variable, shuffle=False, seed=1, minsamples=10, ncomp=0):
     scores = {
                 'DB': {},
                 'SH': {},
@@ -35,7 +37,13 @@ def compute_clustering_indices(model, data, df_item, device, grouping_variable,
         z_dict = model.get_embeddings(data)
         
     embedding = z_dict['item'].detach().cpu().numpy()   
-
+    
+    if ncomp > 0:
+        dimred.fit(embedding)
+        low_dim = dimred.transform(embedding)
+        embedding = embedding[:, :ncomp]
+    print(embedding.shape)
+    
     for category in unique_variable:
         select =  (df_item[target_variable].notnull()) & (df_item[grouping_variable] == category)
         X = embedding[select, :]
@@ -63,7 +71,7 @@ def compute_clustering_indices(model, data, df_item, device, grouping_variable,
     return scores
 
 @torch.no_grad()
-def compute_domain_distances(model, data, df_item, device, shuffle=False, seed=1, nsamples=0):
+def compute_domain_distances(model, data, df_item, device, shuffle=False, seed=1, nsamples=0, ncomp=0):
     
     df_item = df_item.reset_index()
     
@@ -83,7 +91,13 @@ def compute_domain_distances(model, data, df_item, device, shuffle=False, seed=1
         embedding = z_dict['item'].detach().cpu().numpy()
     except:
         z_dict = model.get_embeddings(data)
-        embedding = z_dict['item']    
+        embedding = z_dict['item']
+        
+    if ncomp > 0:
+        dimred.fit(embedding)
+        low_dim = dimred.transform(embedding)
+        embedding = embedding[:, :ncomp]
+    print(embedding.shape)
     #print(embedding.shape)
     embedding = embedding[sampled_df.level_1, :]
     #print(embedding.shape)
@@ -164,15 +178,17 @@ def compute_domain_distances(model, data, df_item, device, shuffle=False, seed=1
 
 
 @torch.no_grad()
-def evaluate_items(model, data, df_item, device, shuffle=False, seed=1, minsamples=10, nsamples=500):
+def evaluate_items(model, data, df_item, device, shuffle=False, seed=1, minsamples=10, nsamples=500, ncomp=0):
     
     scores_matrix = compute_clustering_indices(model, data, df_item, device, 'scale', 
                                         'matrix', shuffle=shuffle, seed=seed, 
-                                        minsamples=minsamples)
+                                        minsamples=minsamples,
+                                        ncomp=ncomp)
 
     scores_topic = compute_clustering_indices(model, data, df_item, device, 'scale', 
                                         'topic', shuffle=shuffle, seed=seed, 
-                                        minsamples=minsamples)
+                                        minsamples=minsamples,
+                                        ncomp=ncomp)
 
     within_domain, between_domain, mean_distances, unique_scales, within_between_scale = compute_domain_distances(model, data, df_item, device, shuffle=shuffle, seed=seed, nsamples=nsamples)
     
@@ -197,6 +213,7 @@ def clustering(model, data, df_item, device, unique_scales, unique_domains, shuf
     pred, z_dict, _ = model(data)
     #select = df_item['scale'].isin(['dles', 'ehoe', 'mzuv']).values
     embedding = z_dict['item'].detach().cpu().numpy()
+    
     for scale in unique_scales:
         select = df_item['scale'] == scale 
         X = embedding[select, :]

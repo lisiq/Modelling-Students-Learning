@@ -4,15 +4,15 @@ import io
 import pickle
 import pandas as pd
 import numpy as np
-from sklearn.decomposition import TruncatedSVD,PCA
+from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
 import seaborn as sns
 from matplotlib.animation import FuncAnimation
 from IPython.display import HTML
 from cluster_utils import compute_clustering_indices
 import statsmodels.api as sm
+import re
 
-#dimred = TruncatedSVD()
 #dimred = TSNE(n_components=2, learning_rate='auto', init='random', perplexity=3)
 dimred = PCA(whiten=False)
 
@@ -467,6 +467,12 @@ def visualize_edges(model, data, edge_indices, device, df, OUTNAME, **kwargs):
     fig.tight_layout()
     plt.savefig(f'./vis/{OUTNAME}_edges_PCA.png', dpi=DPI)
 
+def get_range_means(s):
+    l = re.findall(r"-?\d+\.?\d*", s)
+    l = [ float(x) for x in l]
+    m = np.mean(l) + np.random.normal(0, 0.1)
+    return m
+
 def plot_clustering(grouping_variable, target_variable, model, data, df_item, device, OUTNAME, minsamples=100, nperms=NPERMS):
 
     scores_dict = {'CH': [], 'DB':[]}
@@ -485,30 +491,44 @@ def plot_clustering(grouping_variable, target_variable, model, data, df_item, de
         scores_df.loc[ scores_df['perm'] > 0, 'random'] = 'Shuffled data'
         scores_df['scale'] = scores_df['scalexdifficulty'].str.split().str[0]
         scores_df['difficulty_bin'] = scores_df['scalexdifficulty'].str.split().str[1:].str.join(' ')
+        scores_df['difficulty_num'] = scores_df['difficulty_bin'].apply(get_range_means)
         scores_df_ = scores_df.dropna().copy()
+        #print(scores_df_)
     
         fig, axes = plt.subplots(ncols=6, nrows=2, figsize=FIGSIZE, sharex=False, sharey=True)
 
         for i, scale in enumerate(scores_df['scale'].unique()):
             ax = plt.subplot(2, 6, i+1)
+            #print(i, scale)
             scores_df = scores_df_.loc[ scores_df_['scale'] == scale, :]
             maxscore_df = scores_df.groupby(['perm','random','difficulty_bin'])['index'].max().reset_index()
+            if len(maxscore_df) == 0:
+                continue
             vals = maxscore_df.loc[maxscore_df.random == 'Shuffled data']['index']
             thr = np.quantile(vals, 1 - ALPHALEVEL)
             sns.lineplot(ax=ax, data=scores_df.query('`random` == "Observed data"'), #.sort_values('index'), 
-                         x=grouping_variable, y='index', 
+                         x='difficulty_num', 
+                         y='index', # grouping variable
                          color='black')
-            sns.scatterplot(ax=ax, data=scores_df.query('`random` == "Shuffled data"'), x=grouping_variable, y='index',
-                            hue='random', s=3, alpha=0.5) # + ' ' + target_variable + ' ' + index)
+#            sns.scatterplot(ax=ax, data=scores_df.query('`random` == "Shuffled data"'), x=grouping_variable, y='index',
+#                            hue='random', s=3, alpha=0.5) # + ' ' + target_variable + ' ' + index)
+            sns.scatterplot(ax=ax, data=scores_df.query('`random` == "Shuffled data"'), 
+                          x='difficulty_num', 
+                          y='index',
+                          hue='random', 
+                          s=3, alpha=0.5) # + ' ' + target_variable + ' ' + index)
+    
             ax.set_title(scale)
             ax.set_xlabel('Difficulty')
             ax.set_ylabel('Cluster Validity Index Value')
             ax.axhline(thr, color = 'red', linestyle='--')
-            ax.set(xticklabels=[])
+            #ax.set(xticklabels=[])
             ax.legend_.remove()
             ax.label_outer()
 
-        fig.legend( labels=['Observed \ndata', '_', '_', 'Shuffled \ndata', 'Significance \nthreshold'], 
+#        fig.legend( labels=['Observed \ndata', '_', '_', 'Shuffled \ndata', 'Significance \nthreshold'], 
+#                   loc=(0.84, 0.2), fontsize=13)
+        fig.legend( labels=['Observed \ndata', '_', '_', 'Shuffled \ndata', 'Significance \nthreshold', '_'], 
                    loc=(0.84, 0.2), fontsize=13)
         ax = plt.subplot(2, 6, 12)
         ax.axis('off')
@@ -552,46 +572,3 @@ def doanim(HUELABEL, model, data, device, edge_indices, df, OUTNAME, EQUAL_AXES 
     return ani
 
 
-##################################################################
-# deprecated
-##################################################################
-def plot_clustering_old(grouping_variable, target_variable, model, data, df_item, device, OUTNAME, minsamples=100, nperms=NPERMS):
-    
-    scores_dict = {'CH': [], 'DB':[]}
-
-    for perm in range(nperms):
-        #print(perm)
-        scores = compute_clustering_indices(model, data, df_item, device, grouping_variable, 
-                                            target_variable, shuffle=perm>0, seed=0, minsamples=minsamples)
-        [ scores_dict[key].append(scores[key]) for key in scores_dict]
-
-    #fig, axes = plt.subplots(1, 2, figsize=(16, 6))
-    for i, index in enumerate(scores_dict):
-        fig = plt.figure(figsize=FIGSIZE)
-        scores_df = pd.DataFrame(scores_dict[index])
-        scores_df['perm'] = scores_df.index
-        scores_df = pd.melt(scores_df, id_vars='perm', value_name='index', var_name=grouping_variable)
-        scores_df['random'] = 'Observed data'
-        scores_df.loc[ scores_df['perm'] > 0, 'random'] = 'Shuffled data'
-        maxscore_df = scores_df.groupby(['perm','random'])['index'].max().reset_index()
-        vals = maxscore_df.loc[maxscore_df.random == 'Shuffled data']['index']
-        thr = np.quantile(vals, 1 - ALPHALEVEL)
-        axes = sns.lineplot(data=scores_df.query('`random` == "Observed data"').sort_values('index'), x=grouping_variable, y='index', 
-                     color='black')
-        sns.scatterplot(ax=axes, data=scores_df.query('`random` == "Shuffled data"'), x=grouping_variable, y='index',
-                        hue='random', s=3, alpha=0.5).set_title(target_variable + ' ' + index)
-        axes.set_xlabel('Competence Domain x Difficulty Level')
-        axes.set_ylabel('Cluster Validity Index Value')
-        axes.set_title(f' {COMPETENCE_LABELS[target_variable]} - {CLUSTER_LABELS[index]}')
-        axes.axhline(thr, color = 'red', linestyle='--')
-        #axes[i].tick_params(axis='x', rotation=90)
-        axes.set(xticklabels=[])
-        #axes[i].legend_.remove()
-        handles, labels = axes.get_legend_handles_labels()
-        axes.legend(handles=handles[1:], labels=labels[1:])
-        
-        fig.tight_layout()
-        plt.savefig(f'./vis/{OUTNAME}_{grouping_variable}_{target_variable}_clustering_{index}.png')
-        plt.close()
-
- 

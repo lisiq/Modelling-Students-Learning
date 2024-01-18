@@ -49,26 +49,27 @@ save_fig = function(figname, fig_list, nrow, ncol, wlabels=T){
 
 OUT_DIR = file.path(FIG_DIR,  'paper') 
 
-
+# maybe change by scales
 if (T) {
   
   item_fig_list = list(
     'A' = 'SAGE_full_items_PCA.png',
-    'B' = 'SAGE_full_items/type_sct-x-y-var_domain.png',
-    'C' = 'SAGE_full_items/type_sct-z-y-var_domain.png',
-    'D' = 'SAGE_full_items/type_sct-x-y-var_scale.png',
-    'E' = 'SAGE_full_items/type_sct-z-y-var_scale.png',
-    
-    'F' = 'SAGE_full_dim_items/type_reg-x-None-var_IRT_difficulty.png',
-    'G' = 'SAGE_full_items/type_sct-x-y-var_IRT1_difficulty.png',
-    'H' = 'SAGE_full_items/type_sct-z-y-var_IRT1_difficulty.png',
-    'I' = 'SAGE_full_items/type_sct-x-y-var_IRT1_discrimination.png',
-    'J' = 'SAGE_full_items/type_sct-z-y-var_IRT1_discrimination.png'
+    'B' = 'SAGE_full_dim_items/type_reg-x-None-var_IRT1_difficulty.png',
+    'C' = 'SAGE_full_dim_items/type_reg-y-None-var_IRT1_difficulty.png',
+    'D' = 'SAGE_full_dim_items/type_reg-x-None-var_IRT1_discrimination.png', # use transf
+    'E' = 'SAGE_full_dim_items/type_reg-y-None-var_IRT1_discrimination.png', # use transf
+    'F' = 'SAGE_full_dim_items/type_reg-z-None-var_IRT1_discrimination.png'
   )
 
 
   distances_fig_list = list(
-    'D' = 'SAGE_full_bw.png' # between domain vs within domain distance
+    'A' = 'SAGE_full_items/type_sct-x-y-var_scale.png',
+    'B' = 'SAGE_full_items/type_sct-z-y-var_scale.png',
+    'C' = 'SAGE_matrix_scale_distance_bw.png',
+    'D' = 'SAGE_full_items/type_sct-x-y-var_domain.png',
+    'E' = 'SAGE_full_items/type_sct-z-y-var_domain.png',
+    'F' = 'SAGE_matrix_domain_distance_bw.png'
+    
   )
   
   # show the effect of competences
@@ -76,7 +77,7 @@ if (T) {
     'A' = 'SAGE_full_bw_random_CH.png',
     'D' = 'SAGE_full_bw_random_DB.png',
     'C' = 'SAGE_full_scalexdifficulty_matrix_clustering_CH.png',
-    'D' = 'SAGE_full_scalexdifficulty_matrix_clustering_DB.png',
+    'D' = 'SAGE_full_scalexdifficulty_matrix_clustering_DB.png'
   )
   
   # show the effect of topics
@@ -112,7 +113,8 @@ if (T) {
   # frequency/ amount
   
   
-  save_fig("Fig_Items.png", item_fig_list, nrow=2, ncol=5)
+  save_fig("Fig_Items.png", item_fig_list, nrow=2, ncol=3)
+  save_fig("Fig_Distance.png", distances_fig_list, nrow=2, ncol=3)
   save_fig("Fig_Cluster.png", cluster_fig_list, nrow=3, ncol=2)
   save_fig("Fig_ClusterSupp1.png", cluster_supp_fig_list1, nrow=2, ncol=2)
   save_fig("Fig_ClusterSupp2.png", cluster_supp_fig_list1, nrow=2, ncol=1)
