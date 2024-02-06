@@ -45,8 +45,8 @@ class MIRT_2PL(torch.nn.Module):
                 
         row, col = data['student', 'responds', 'item'].edge_index
         z_student = x_student[row]
-        z_item = x_item[col]
-        z_offset = x_offset[col]
+        z_item = x_item[col] # discrimination
+        z_offset = x_offset[col] # difficulty
         
         # demean the features        
         edge_feat0 = data['student', 'responds', 'item'].edge_attr
@@ -63,6 +63,7 @@ class MIRT_2PL(torch.nn.Module):
         self.x_dict = {
               'student': x_student,
               'item': x_item,
+              'discrimination': self.softplus(x_item),
               'offset': x_offset,
               'ability': z_ability
             }
