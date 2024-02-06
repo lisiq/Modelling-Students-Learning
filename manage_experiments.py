@@ -13,6 +13,7 @@ import uuid as _uuid
 import glob as _glob
 from IRT import MIRT_2PL, train_IRT, test_IRT
 from sklearn.utils.class_weight import compute_class_weight
+import matplotlib.pyplot as plt
 
 import random 
 import sys
@@ -72,6 +73,10 @@ def perform_experiment(filename):
     output_dict = perform_cross_validation(data, parameters)
         
     output_dict['done'] = True
+    # print the keys and get the type of all thevalues in the dictionary
+    for key, value in output_dict.items():
+        print(key, type(value))
+    
     save_dict(output_dict, filename)    
 
 
@@ -200,8 +205,8 @@ def perform_cross_validation(data, parameters, save_embeddings=False, save_subgr
                     )
             losses.append(loss.detach().item())
         
-            val_b = test_loop(model, test_subgraph_data, fold, 'val')
-            test_b = test_loop(model, val_subgraph_data, fold, 'test')
+            val_b = test_loop(model, val_subgraph_data, fold, 'val')
+            test_b = test_loop(model, test_subgraph_data, fold, 'test')
 
             if val_b['Balanced Accuracy'+f'_{fold}_val'] > best_val_acc:
                 early_stopping = 0
@@ -225,6 +230,13 @@ def perform_cross_validation(data, parameters, save_embeddings=False, save_subgr
                 break
             
             data = data.to('cpu')
+
+        # get the dictionary of model parameters
+        print(plt.imshow(model.encoder.layers[0].state_dict()['student__responds__item.lin_r.weight'].cpu().detach().numpy()))
+        # print(model.encoder.layers[0].parameters())
+        assert False
+        # print(model.encoder.layers[0].weight)
+        
 
         # Results
         losses_dict = {f'losses_{fold}': losses}

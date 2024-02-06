@@ -21,13 +21,13 @@ class GNNEncoder(torch.nn.Module):
 
         for i in range(len(self.hidden_channels)-2):
             x = F.elu(self.layers[i](x, edge_index))
-            # x = F.dropout(x, training=self.training, p=0.4)
+            x = F.dropout(x, training=self.training, p=0.2)
 
             x = self.batch_norm_layers[i](x)
 
         x = self.layers[-1](x, edge_index)
         x = F.elu(x)
-        # x = F.dropout(x, training=self.training, p=0.4)
+        x = F.dropout(x, training=self.training, p=0.2)
         x = self.batch_norm_layers[-1](x)
 
         return x
@@ -37,7 +37,8 @@ class Classifier_heterogeneous(torch.nn.Module):
     def __init__(self, input_channel, edge_dim):
         super().__init__()
         # output is bi-dimensional because and item is either passed or not
-        self.linear = Linear(2*input_channel+edge_dim, 1) # changed to 1 from 2
+        self.linear = Linear(2*input_channel+edge_dim, 32) # changed to 1 from 2
+        self.linear_2 = Linear(32, 1)
 
     def forward(self, x_student, x_item, edge_label_index, edge_feat):
         # Convert node embeddings to edge-level representations:
@@ -46,7 +47,9 @@ class Classifier_heterogeneous(torch.nn.Module):
 
         # concatenate node representations with edge features, and obtain edge feature
         if edge_feat is None: # for the synthetic dataset
-            x = self.linear(torch.cat([edge_feat_student, edge_feat_item], dim=-1))
+            x =F.elu( self.linear(torch.cat([edge_feat_student, edge_feat_item], dim=-1)))
         else:
             x = self.linear(torch.cat([edge_feat_student, edge_feat, edge_feat_item], dim=-1))
+        x = F.dropout(x, training=self.training, p=0.2)
+        x = self.linear_2(x)
         return x 

@@ -104,6 +104,7 @@ def calculate_metrics(y_true, pred):
     y_pred = pred.squeeze().round().long().numpy()#.argmax(dim=1, keepdim=True).view(-1).numpy()
     return {
             'AUC':roc_auc_score(y_true, y_predsoft), #
+            'Confusion':confusion_matrix(y_true, y_pred).tolist(),
             # 'F1-score-weighted':f1_score(y_true, y_pred, average='weighted'), #
             # 'F1-score-macro':f1_score(y_true, y_pred, average='macro'),
             # 'F1-score-micro':f1_score(y_true, y_pred, average='micro'),
@@ -134,6 +135,122 @@ def generate_data_object_synthetic(n_students,n_tasks,n_task_per_student,  error
     
     data = create_data_object_synthetic_heterogeneous(n_students,n_tasks,edge_indices,y, students_ability, code_difficulty)
     return data
+
+def generate_multidimensional_data_object_synthetic(n_students,n_tasks,n_task_per_student,  n_topics = 2 , dimension=2, probabilistic=True, number_of_tasks_per_students_is_max=False):
+
+    edge_indices, y, student_gaussians, item_gaussians, item_difficulty = generate_multidimensional_synthetic_student_data_interactions_heterogeneous(n_students,n_tasks,n_task_per_student,  n_topics, dimension, probabilistic, number_of_tasks_per_students_is_max)
+    
+    data = create_data_object_synthetic_heterogeneous(n_students,n_tasks,edge_indices,y, student_gaussians, item_gaussians, item_difficulty)
+    return data
+
+def polar_to_cartesian(radius, angles):
+    n = len(angles)+1
+    cartesian_coordinates = np.ones(n) * radius
+    for i in range(n-1):
+        # print(i)
+        for j in range(i):
+            # print('sin ',j+1)
+            cartesian_coordinates[i] *= np.sin(angles[j])
+        # print('cos ',i+1)
+        cartesian_coordinates[i] *= np.cos(angles[i])
+    # print('sin ',n-1)
+    cartesian_coordinates[n-1] *= np.prod([np.sin(angles[i]) for i in range(n-1)])
+    return cartesian_coordinates
+
+# Given the raidius and target probability that an item is passed by  a student with competence in that topic, return the corresponding item difficulty
+# formula is obtained by reversing the sigmoid function
+def get_difficulty_boundaries(radius, target_probability):
+    return np.log((1-target_probability)/target_probability) + radius**2
+
+
+# https://www.psychometrics.cam.ac.uk/system/files/documents/multidimensional-item-response-theory.pdf
+def generate_multidimensional_synthetic_student_data_interactions_heterogeneous(
+        n_students,
+        n_items,
+        n_tasks_per_students,
+        n_topics=2, 
+        dimension = 2, 
+        probabilistic=True,
+        number_of_tasks_per_students_is_max=False):
+    # give random ability and difficulty features to students and tasks respectively
+    n_difficulty_levels = 10
+    # 2*torch.rand(dataset.x.shape)-1
+
+    radius = np.sqrt(2)
+    list_theta = []
+    # sampling random angles for the gaussian means
+    for i in range(n_topics):
+        list_theta.append(np.random.uniform(0, 2*np.pi, dimension-1)) # -1 cause one dimension is fixed by the radius
+    # list_theta = [np.array(theta) for theta in [[np.pi/4],[(3/2)*np.pi - np.pi/4]]]
+    list_theta = [np.array([2*np.pi*(i/n_topics)]) for i in range(n_topics)]
+    gaussian_means = [torch.from_numpy(polar_to_cartesian(radius, theta)).float() for theta in list_theta]
+    # print(gaussian_means)
+
+    gaussians = [torch.distributions.multivariate_normal.MultivariateNormal(
+        # loc = torch.rand(dimension)*scale,
+        loc = gaussian_means[i],
+        covariance_matrix = torch.eye(dimension) * 0.1
+        ) for i in range(n_topics) ]
+
+    # we sample one vector of multidimensional ability (theta) for each student 
+    student_gaussians = [np.random.randint(n_topics) for _ in range(n_students)]
+    students_vector = {
+        k:gaussians[sg].sample() for k,sg in enumerate(student_gaussians)
+    }
+
+    # we sample one vector of multidimensional discrimination for each item 
+    item_gaussians = [np.random.randint(n_topics) for _ in range(n_items)]
+    item_vector = {
+        k: gaussians[ig].sample() for k,ig in enumerate(item_gaussians)
+    }
+    # we sample a difficult value per item
+    difficulty_levels = np.linspace(
+        get_difficulty_boundaries(radius, .50), # lower difficulty boundary
+        get_difficulty_boundaries(radius, .20), # higher difficulty boundary
+        n_difficulty_levels)  # number of difficulty levels
+
+    item_difficulty = {
+        # k: random.sample(range(max_difficulty), k=1) for k in range(n_items)
+        k: diff for k, diff in enumerate(random.choices(
+                    population=list(difficulty_levels), 
+                    weights=None, # weights are all equal. However, we could use a different distribution
+                    k=n_items))
+    }
+
+    edge_indices = []
+    y = []
+    list_x = []
+    for item_id, difficulty in item_difficulty.items():
+        # sample random connections with students
+        if number_of_tasks_per_students_is_max:
+            k = random.sample(list(range(1,n_tasks_per_students)),k=1)[0]
+        else:
+            k = n_tasks_per_students
+        s = random.sample(list(students_vector.keys()), k=k)
+        # sample whether item is performed correcly from sigmoid with parameters given by MIRT model
+        for student_id in s:
+            edge_indices.append((student_id, item_id))
+            x = torch.dot(students_vector[student_id],item_vector[item_id]) - difficulty
+            if probabilistic:  
+                sigmoid_value = 1 / (1 + np.exp(-x))
+                list_x.append(sigmoid_value)
+                if random.random() <= sigmoid_value:
+                    y.append(1)
+                else:
+                    y.append(0)
+            else:
+                if x > 0:
+                    y.append(1)
+                else: 
+                    y.append(0)   
+
+    # import matplotlib.pyplot as plt
+    # plt.hist(list_x, bins=100)
+    # plt.show()
+    # bins = torch.bincount(torch.tensor(y))
+    # print(bins)
+    # print(bins.max()/bins.sum())
+    return edge_indices, y, student_gaussians, item_gaussians, item_difficulty 
 
 
 def generate_synthetic_student_data_interactions_heterogeneous(n_students,n_tasks,n_tasks_per_students, error_proness_denom = 2, probabilistic=True, number_of_tasks_per_students_is_max=False):
@@ -170,11 +287,13 @@ def generate_synthetic_student_data_interactions_heterogeneous(n_students,n_task
                     y.append(1)
                 else: 
                     y.append(0)   
+
+    
     return edge_indices, y, list(students.values()), list(code.values())
 
 
 from torch_geometric.data import HeteroData
-def create_data_object_synthetic_heterogeneous(n_students,n_tasks,edge_indices,y, students_ability, code_difficulty):
+def create_data_object_synthetic_heterogeneous(n_students,n_tasks,edge_indices,y, student_gaussians, item_gaussians, item_difficulty):
     data  = HeteroData()
 
     # Save node indices
@@ -182,8 +301,9 @@ def create_data_object_synthetic_heterogeneous(n_students,n_tasks,edge_indices,y
     data['item'].node_id = torch.arange(n_tasks)
 
     # Save difficulty and ability
-    data['student'].ability = torch.tensor(students_ability)
-    data['item'].difficulty = torch.tensor(code_difficulty)
+    data['student'].gaussians = torch.tensor(student_gaussians)
+    data['item'].gaussians = torch.tensor(item_gaussians)
+    data['item'].difficulty = torch.tensor([item_difficulty[i] for i in range(n_tasks)])
 
 
     # Add the node features
@@ -193,6 +313,9 @@ def create_data_object_synthetic_heterogeneous(n_students,n_tasks,edge_indices,y
 
     # Add the edge indices
     data['student', 'responds', 'item'].edge_index = torch.from_numpy(np.array(edge_indices).T).to(torch.long)
+
+    #add the edge attrs
+    data['student', 'responds', 'item'].edge_attr = torch.tensor([1]*len(y)).to(torch.float).reshape(-1,1)
 
     # Add the edge label
     data['student', 'responds', 'item'].y = torch.from_numpy(np.array(y)).to(torch.long)

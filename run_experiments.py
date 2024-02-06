@@ -20,9 +20,9 @@ parameters = {
     # 'dropout': 0.4,
     'early_stopping': 200,
     'n_splits': 10,
-    'device': 'cuda',
-    'batch_size': 1024.
-    'neighbours':[10, 10]
+    'device': 'cuda:1',
+    'batch_size': 64*1024,
+    'neighbours':[-1, -1]
     }
 
 
