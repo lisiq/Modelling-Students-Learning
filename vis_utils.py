@@ -259,6 +259,8 @@ def visualize_items(model, data, device, df_item, OUTNAME, dims=('x', 'y'), equa
     PC_values = np.arange(dimred.n_components_) + 1
     #plt.sca(axes[1, 1])
     plt.plot(PC_values, dimred.explained_variance_ratio_*100, 'o-', linewidth=2, color='blue')
+    plt.plot(PC_values, np.cumsum(dimred.explained_variance_ratio_)*100, 'o-', linewidth=2, color='red')
+    fig.legend(labels=['Variance', 'Cumulative variance'])
     if MAX_PCS > 0:
         plt.xticks(PC_values[:MAX_PCS])
         plt.xlim(0, max(PC_values[:MAX_PCS])+1)
