@@ -130,7 +130,6 @@ def perform_cross_validation(data, parameters, save_embeddings=False, save_subgr
                                     replace=False,
                                     batch_size=parameters['batch_size'])
         
-        
         # Initialise
         # this makes the model initalise only once,
         # all the other folds will use only the model defined in the first fold
@@ -232,9 +231,9 @@ def perform_cross_validation(data, parameters, save_embeddings=False, save_subgr
             data = data.to('cpu')
 
         # get the dictionary of model parameters
-        print(plt.imshow(model.encoder.layers[0].state_dict()['student__responds__item.lin_r.weight'].cpu().detach().numpy()))
+        # print(plt.imshow(model.encoder.layers[0].state_dict()['student__responds__item.lin_r.weight'].cpu().detach().numpy()))
         # print(model.encoder.layers[0].parameters())
-        assert False
+        # assert False
         # print(model.encoder.layers[0].weight)
         
 

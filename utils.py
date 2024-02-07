@@ -26,7 +26,6 @@ def load_data_heterogeneous(path):
     df.code = df.code.apply(lambda x: code_to_index[x])
     #df.scale = df.scale.apply(lambda x: scale_to_index[x])    
 
-    print(df.shape)
     return df
 
 
@@ -128,14 +127,6 @@ import random
 def load_data_synthetic(fname): 
     return torch.load(fname)
 
-
-def generate_data_object_synthetic(n_students,n_tasks,n_task_per_student,  error_proness_denom = 2, probabilistic=True, number_of_tasks_per_students_is_max=False):
-
-    edge_indices, y, students_ability, code_difficulty= generate_synthetic_student_data_interactions_heterogeneous(n_students,n_tasks,n_task_per_student,  error_proness_denom , probabilistic, number_of_tasks_per_students_is_max)
-    
-    data = create_data_object_synthetic_heterogeneous(n_students,n_tasks,edge_indices,y, students_ability, code_difficulty)
-    return data
-
 def generate_multidimensional_data_object_synthetic(n_students,n_tasks,n_task_per_student,  n_topics = 2 , dimension=2, probabilistic=True, number_of_tasks_per_students_is_max=False):
 
     edge_indices, y, student_gaussians, item_gaussians, item_difficulty = generate_multidimensional_synthetic_student_data_interactions_heterogeneous(n_students,n_tasks,n_task_per_student,  n_topics, dimension, probabilistic, number_of_tasks_per_students_is_max)
@@ -147,13 +138,9 @@ def polar_to_cartesian(radius, angles):
     n = len(angles)+1
     cartesian_coordinates = np.ones(n) * radius
     for i in range(n-1):
-        # print(i)
         for j in range(i):
-            # print('sin ',j+1)
             cartesian_coordinates[i] *= np.sin(angles[j])
-        # print('cos ',i+1)
         cartesian_coordinates[i] *= np.cos(angles[i])
-    # print('sin ',n-1)
     cartesian_coordinates[n-1] *= np.prod([np.sin(angles[i]) for i in range(n-1)])
     return cartesian_coordinates
 
@@ -176,7 +163,7 @@ def generate_multidimensional_synthetic_student_data_interactions_heterogeneous(
     n_difficulty_levels = 10
     # 2*torch.rand(dataset.x.shape)-1
 
-    radius = np.sqrt(2)
+    radius = np.sqrt(2) # TODO: avoid hardcoding, give in input 
     list_theta = []
     # sampling random angles for the gaussian means
     for i in range(n_topics):
@@ -184,7 +171,6 @@ def generate_multidimensional_synthetic_student_data_interactions_heterogeneous(
     # list_theta = [np.array(theta) for theta in [[np.pi/4],[(3/2)*np.pi - np.pi/4]]]
     list_theta = [np.array([2*np.pi*(i/n_topics)]) for i in range(n_topics)]
     gaussian_means = [torch.from_numpy(polar_to_cartesian(radius, theta)).float() for theta in list_theta]
-    # print(gaussian_means)
 
     gaussians = [torch.distributions.multivariate_normal.MultivariateNormal(
         # loc = torch.rand(dimension)*scale,
@@ -248,48 +234,57 @@ def generate_multidimensional_synthetic_student_data_interactions_heterogeneous(
     # plt.hist(list_x, bins=100)
     # plt.show()
     # bins = torch.bincount(torch.tensor(y))
-    # print(bins)
-    # print(bins.max()/bins.sum())
     return edge_indices, y, student_gaussians, item_gaussians, item_difficulty 
 
 
-def generate_synthetic_student_data_interactions_heterogeneous(n_students,n_tasks,n_tasks_per_students, error_proness_denom = 2, probabilistic=True, number_of_tasks_per_students_is_max=False):
-    # give random ability and difficulty features to students and tasks respectively
-    max_difficulty = 10
-    students = {
-        k: random.sample(range(max_difficulty),k=1) for k in range(n_students)
-    }
+def generate_multidimensional_data_object_synthetic_geometric(n_students,n_tasks,n_task_per_student,  n_topics = 2 , dimension=2, radius=0.1, probabilistic=True, number_of_tasks_per_students_is_max=False):
 
-    code = {
-        k: random.sample(range(max_difficulty), k=1) for k in range(n_tasks)
-    }
+    edge_indices, y, ability, difficulty = generate_synthetic_geometric_interactions(n_students,n_tasks,n_task_per_student,  n_topics, dimension, radius, probabilistic, number_of_tasks_per_students_is_max)
+    data = create_data_object_synthetic_geometric(n_students,n_tasks,edge_indices,y, ability, difficulty)
+    return data
 
-    edge_indices = []
-    y = []
-    for c, difficulty in code.items():
-        if number_of_tasks_per_students_is_max:
-            k = random.sample(list(range(1,n_tasks_per_students)),k=1)[0]
-        else:
-            k = n_tasks_per_students
-        s = random.sample(list(students.keys()), k=k)
-        for i in s:
-            edge_indices.append((i, c))
-            x = students[i][0] - difficulty[0]
-            
-            if probabilistic:  
-                sigmoid_value = 1 / (1 + np.exp(-x/error_proness_denom))
-                if random.random() <= sigmoid_value:
-                    y.append(1)
-                else:
-                    y.append(0)
-            else:
-                if x > 0:
-                    y.append(1)
-                else: 
-                    y.append(0)   
 
+def generate_synthetic_geometric_interactions(
+        n_students,
+        n_items,
+        n_tasks_per_students,
+        n_topics=1, 
+        dimension = 2, 
+        radius = 0.1,
+        probabilistic=True,
+        number_of_tasks_per_students_is_max=False):
     
-    return edge_indices, y, list(students.values()), list(code.values())
+    assert n_topics == 1, "This function is only for 1D"
+
+    # GENERATING NODE POSITIONS AND PLOTTING THEM 
+    # NB: ALSO SETTING RADIUS USED BELOW
+    student_geom = np.random.rand(n_students,dimension)
+    student_ids = range(n_students)
+    items_geom = np.random.rand(n_items,dimension)
+    items_id = range(n_students, n_students+n_items)
+
+    # OBTAINING PROBABILITY (AND PLOTTING PATTERNS FOR ON EDGES -- POSITION TAKING AVERAGE BETWEEN NODES INVOLVED IN THE INTERACTIONS)
+    label_probs = []
+    for i in range(n_students):
+        for j in range(n_items):
+            if np.linalg.norm(student_geom[i]-items_geom[j]) < radius:
+                # first coordinate used as student ability 
+                # second coordinate used as item difficulty
+                x = student_geom[i][0]-items_geom[j][1]
+                label_probs.append(1/(1+np.exp(-x)))
+
+    # CREATING LIST OF EDGES
+    edges = []
+    for i in range(n_students):
+        for j in range(n_items):
+            if np.linalg.norm(student_geom[i]-items_geom[j]) < radius:
+                edges.append((i,j))
+
+    # CREATING LIST OF LABELS
+    labels = [1 if random.random() < p else 0 for p in label_probs]
+
+    return edges, labels, student_geom[:,0], items_geom[:,1]
+
 
 
 from torch_geometric.data import HeteroData
@@ -326,6 +321,41 @@ def create_data_object_synthetic_heterogeneous(n_students,n_tasks,edge_indices,y
     del data['item', 'rev_responds', 'student'].edge_attr  # Remove 'reverse' label.
     del data['item', 'rev_responds', 'student'].y  # Remove 'reverse' label.
     return data
+
+def create_data_object_synthetic_geometric(n_students,n_tasks,edge_indices, y, ability, difficulty):
+    data  = HeteroData()
+
+    # Save node indices
+    data['student'].node_id = torch.arange(n_students)
+    data['item'].node_id = torch.arange(n_tasks)
+
+    # Save difficulty and ability
+    data['student'].ability = torch.tensor(ability)
+    data['item'].difficulty = torch.tensor(difficulty)
+    # data['item'].difficulty = torch.tensor([item_difficulty[i] for i in range(n_tasks)])
+
+
+    # Add the node features
+    # there seems to be students with different mother tongue and gender in different occasions
+    data['student'].x= torch.eye(n_students)
+    data['item'].x = torch.eye(n_tasks)
+
+    # Add the edge indices
+    data['student', 'responds', 'item'].edge_index = torch.from_numpy(np.array(edge_indices).T).to(torch.long)
+
+    #add the edge attrs
+    data['student', 'responds', 'item'].edge_attr = torch.tensor([1]*len(y)).to(torch.float).reshape(-1,1)
+
+    # Add the edge label
+    data['student', 'responds', 'item'].y = torch.from_numpy(np.array(y)).to(torch.long)
+
+    # We use T.ToUndirected() to add the reverse edges from subject to students 
+    # in order to let GNN pass messages in both ways
+    data = T.ToUndirected()(data)
+    del data['item', 'rev_responds', 'student'].edge_attr  # Remove 'reverse' label.
+    del data['item', 'rev_responds', 'student'].y  # Remove 'reverse' label.
+    return data
+
 
 
 # create subgraph
