@@ -470,7 +470,7 @@ def visualize_edges(model, data, edge_indices, device, df, OUTNAME, **kwargs):
 def get_range_means(s):
     l = re.findall(r"-?\d+\.?\d*", s)
     l = [ float(x) for x in l]
-    m = np.mean(l) + np.random.normal(0, 0.1)
+    m = np.mean(l)
     return m
 
 def plot_clustering(grouping_variable, target_variable, model, data, df_item, device, OUTNAME, minsamples=100, nperms=NPERMS):
@@ -478,65 +478,74 @@ def plot_clustering(grouping_variable, target_variable, model, data, df_item, de
     scores_dict = {'CH': [], 'DB':[]}
 
     for perm in range(nperms):
-        #print(perm)
-        scores = compute_clustering_indices(model, data, df_item, device, grouping_variable, 
-                                            target_variable, shuffle=perm>0, seed=0, minsamples=minsamples)
-        [ scores_dict[key].append(scores[key]) for key in scores_dict]
+    #print(perm)
+    scores = compute_clustering_indices(model, data, df_item, device, grouping_variable, 
+                                        target_variable, shuffle=perm>0, seed=0, minsamples=minsamples)
+    [ scores_dict[key].append(scores[key]) for key in scores_dict]
 
-    for i, index in enumerate(scores_dict):
-        scores_df = pd.DataFrame(scores_dict[index])
-        scores_df['perm'] = scores_df.index     
-        scores_df = pd.melt(scores_df, id_vars='perm', value_name='index', var_name=grouping_variable)
-        scores_df['random'] = 'Observed data'
-        scores_df.loc[ scores_df['perm'] > 0, 'random'] = 'Shuffled data'
-        scores_df['scale'] = scores_df['scalexdifficulty'].str.split().str[0]
-        scores_df['difficulty_bin'] = scores_df['scalexdifficulty'].str.split().str[1:].str.join(' ')
-        scores_df['difficulty_num'] = scores_df['difficulty_bin'].apply(get_range_means)
-        scores_df_ = scores_df.dropna().copy()
-        #print(scores_df_)
-    
-        fig, axes = plt.subplots(ncols=6, nrows=2, figsize=FIGSIZE, sharex=False, sharey=True)
+for i, index in enumerate(scores_dict):
+    scores_df = pd.DataFrame(scores_dict[index])
+    scores_df['perm'] = scores_df.index     
+    scores_df = pd.melt(scores_df, id_vars='perm', value_name='index', var_name=grouping_variable)
+    scores_df['random'] = 'Observed data'
+    scores_df.loc[ scores_df['perm'] > 0, 'random'] = 'Shuffled data'
+    scores_df['scale'] = scores_df['scalexdifficulty'].str.split().str[0]
+    scores_df['difficulty_bin'] = scores_df['scalexdifficulty'].str.split().str[1:].str.join(' ')
+    scores_df['difficulty_num'] = scores_df['difficulty_bin'].apply(get_range_means)
+    scores_df['difficulty_jit'] = scores_df['difficulty_num'] + np.random.normal(0, 0.05, size=len(scores_df['difficulty_num'])) 
+    scores_df_ = scores_df.dropna().copy()
+    #print(scores_df_)
 
-        for i, scale in enumerate(scores_df['scale'].unique()):
-            ax = plt.subplot(2, 6, i+1)
-            #print(i, scale)
-            scores_df = scores_df_.loc[ scores_df_['scale'] == scale, :]
-            maxscore_df = scores_df.groupby(['perm','random','difficulty_bin'])['index'].max().reset_index()
-            if len(maxscore_df) == 0:
-                continue
-            vals = maxscore_df.loc[maxscore_df.random == 'Shuffled data']['index']
-            thr = np.quantile(vals, 1 - ALPHALEVEL)
-            sns.lineplot(ax=ax, data=scores_df.query('`random` == "Observed data"'), #.sort_values('index'), 
-                         x='difficulty_num', 
-                         y='index', # grouping variable
-                         color='black')
+    fig, axes = plt.subplots(ncols=6, nrows=2, figsize=FIGSIZE, sharex=False, sharey=True)
+
+    for i, scale in enumerate(scores_df['scale'].unique()):
+        ax = plt.subplot(2, 6, i+1)
+        print(i, scale)
+        scores_df = scores_df_.loc[ scores_df_['scale'] == scale, :]
+        maxscore_df = scores_df.groupby(['perm','random','difficulty_num'])['index'].max().reset_index()
+        thr_df = scores_df.loc[scores_df.random == 'Shuffled data'].groupby(['difficulty_num'])['index'].quantile(1-ALPHALEVEL).reset_index()
+        if len(maxscore_df) == 0:
+            continue
+        vals = maxscore_df.loc[maxscore_df.random == 'Shuffled data']['index']
+        thr_global = np.quantile(vals, 1 - ALPHALEVEL)
+        sns.lineplot(ax=ax, data=thr_df, #.sort_values('index'), 
+                     x='difficulty_num', 
+                     y='index', # grouping variable
+                     color='red', linestyle='--', size=0.5)
 #            sns.scatterplot(ax=ax, data=scores_df.query('`random` == "Shuffled data"'), x=grouping_variable, y='index',
 #                            hue='random', s=3, alpha=0.5) # + ' ' + target_variable + ' ' + index)
-            sns.scatterplot(ax=ax, data=scores_df.query('`random` == "Shuffled data"'), 
-                          x='difficulty_num', 
-                          y='index',
-                          hue='random', 
-                          s=3, alpha=0.5) # + ' ' + target_variable + ' ' + index)
-    
-            ax.set_title(scale)
-            ax.set_xlabel('Difficulty')
-            ax.set_ylabel('Cluster Validity Index Value')
-            ax.axhline(thr, color = 'red', linestyle='--')
-            #ax.set(xticklabels=[])
-            ax.legend_.remove()
-            ax.label_outer()
+        sns.scatterplot(ax=ax, data=scores_df.query('`random` == "Shuffled data"'), 
+                      x='difficulty_jit', 
+                      y='index',
+                      hue='random', 
+                      s=3, alpha=0.7) # + ' ' + target_variable + ' ' + index)
+        sns.lineplot(ax=ax, data=scores_df.query('`random` == "Observed data"'), #.sort_values('index'), 
+                     x='difficulty_num', 
+                     y='index', # grouping variable
+                     color='black',
+                     size=0.5)
+
+        ax.set_title(scale)
+        ax.set_xlabel('Difficulty')
+        ax.set_ylabel('Cluster Validity Index Value')
+        ax.axhline(thr_global, color = 'red')
+        #ax.set(xticklabels=[])
+        ax.legend_.remove()
+        ax.label_outer()
 
 #        fig.legend( labels=['Observed \ndata', '_', '_', 'Shuffled \ndata', 'Significance \nthreshold'], 
 #                   loc=(0.84, 0.2), fontsize=13)
-        fig.legend( labels=['Observed \ndata', '_', '_', 'Shuffled \ndata', 'Significance \nthreshold', '_'], 
-                   loc=(0.84, 0.2), fontsize=13)
-        ax = plt.subplot(2, 6, 12)
-        ax.axis('off')
+    fig.legend( labels=['Significance \nthreshold \n(uncorrected)',
+                        '_', 'Observed \ndata', '_', 'Shuffled \ndata', 
+                        '_', 
+                        '_', '_', 'Significance \nthreshold \n(corrected)'], 
+               loc=(0.84, 0.2), fontsize=13)
+    ax = plt.subplot(2, 6, 12)
+    ax.axis('off')
 
-
-        fig.tight_layout()
-        plt.savefig(f'./vis/{OUTNAME}_{grouping_variable}_{target_variable}_clustering_{index}.png')
-        plt.close()
+    fig.tight_layout()
+    plt.savefig(f'./vis/{OUTNAME}_{grouping_variable}_{target_variable}_clustering_{index}.png')
+    plt.close()
     
 def doanim(HUELABEL, model, data, device, edge_indices, df, OUTNAME, EQUAL_AXES = False, html=True):
     

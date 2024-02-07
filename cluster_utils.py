@@ -42,7 +42,7 @@ def compute_clustering_indices(model, data, df_item, device, grouping_variable,
         dimred.fit(embedding)
         low_dim = dimred.transform(embedding)
         embedding = embedding[:, :ncomp]
-    print(embedding.shape)
+    #print(embedding.shape)
     
     for category in unique_variable:
         select =  (df_item[target_variable].notnull()) & (df_item[grouping_variable] == category)
@@ -97,7 +97,7 @@ def compute_domain_distances(model, data, df_item, device, shuffle=False, seed=1
         dimred.fit(embedding)
         low_dim = dimred.transform(embedding)
         embedding = embedding[:, :ncomp]
-    print(embedding.shape)
+    #print(embedding.shape)
     #print(embedding.shape)
     embedding = embedding[sampled_df.level_1, :]
     #print(embedding.shape)

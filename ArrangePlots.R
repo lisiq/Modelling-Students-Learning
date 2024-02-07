@@ -53,54 +53,54 @@ OUT_DIR = file.path(FIG_DIR,  'paper')
 if (T) {
   
   item_fig_list = list(
-    'A' = 'SAGE_full_items_PCA.png',
-    'B' = 'SAGE_full_dim_items/type_reg-x-None-var_IRT1_difficulty.png',
-    'C' = 'SAGE_full_dim_items/type_reg-y-None-var_IRT1_difficulty.png',
-    'D' = 'SAGE_full_dim_items/type_reg-x-None-var_IRT1_discrimination.png', # use transf
-    'E' = 'SAGE_full_dim_items/type_reg-y-None-var_IRT1_discrimination.png', # use transf
-    'F' = 'SAGE_full_dim_items/type_reg-z-None-var_IRT1_discrimination.png'
+    'A' = 'SAGE_scales_full_items_PCA.png',
+    'B' = 'SAGE_scales_full_dim_items/type_reg-x-None-var_IRT1_difficulty.png',
+    'C' = 'SAGE_scales_full_dim_items/type_reg-y-None-var_IRT1_difficulty.png',
+    'D' = 'SAGE_scales_full_dim_items/type_reg-x-None-var_IRT1_discrimination_transf.png', 
+    'E' = 'SAGE_scales_full_dim_items/type_reg-y-None-var_IRT1_discrimination_transf.png', 
+    'F' = 'SAGE_scales_full_dim_items/type_reg-z-None-var_IRT1_discrimination_transf.png'
   )
 
 
   distances_fig_list = list(
-    'A' = 'SAGE_full_items/type_sct-x-y-var_scale.png',
-    'B' = 'SAGE_full_items/type_sct-z-y-var_scale.png',
-    'C' = 'SAGE_matrix_scale_distance_bw.png',
-    'D' = 'SAGE_full_items/type_sct-x-y-var_domain.png',
-    'E' = 'SAGE_full_items/type_sct-z-y-var_domain.png',
-    'F' = 'SAGE_matrix_domain_distance_bw.png'
+    'A' = 'SAGE_scales_full_items/type_sct-x-y-var_scale.png',
+    'B' = 'SAGE_scales_full_items/type_sct-z-y-var_scale.png',
+    'C' = 'SAGE_scales_full_scale_distance_bw.png',
+    'D' = 'SAGE_scales_full_items/type_sct-x-y-var_domain.png',
+    'E' = 'SAGE_scales_full_items/type_sct-z-y-var_domain.png',
+    'F' = 'SAGE_scales_full_domain_distance_bw.png'
     
   )
   
   # show the effect of competences
   cluster_fig_list = list(
-    'A' = 'SAGE_full_bw_random_CH.png',
-    'D' = 'SAGE_full_bw_random_DB.png',
-    'C' = 'SAGE_full_scalexdifficulty_matrix_clustering_CH.png',
-    'D' = 'SAGE_full_scalexdifficulty_matrix_clustering_DB.png'
+    'A' = 'SAGE_scales_full_matrix_bw_random_CH.png',
+    'B' = 'SAGE_scales_full_matrix_bw_random_DB.png',
+    'C' = 'SAGE_scales_full_scalexdifficulty_matrix_clustering_CH.png',
+    'D' = 'SAGE_scales_full_scalexdifficulty_matrix_clustering_DB.png'
   )
   
   # show the effect of topics
   cluster_supp_fig_list1 = list(
-    'A' = 'SAGE_full_scalexdifficulty_topic_clustering_CH.png',
-    'B' = 'SAGE_full_scalexdifficulty_topic_clustering_DB.png'
+    'A' = 'SAGE_scales_full_scalexdifficulty_topic_clustering_CH.png',
+    'B' = 'SAGE_scales_full_scalexdifficulty_topic_clustering_DB.png'
   )
   
   # show that the similarities are not due to being in the same session
   cluster_supp_fig_list2 = list(
-    'A' = 'SAGE_matrix_scalexdifficulty_matrix_clustering_CH.png',
-    'B' = 'SAGE_matrix_scalexdifficulty_matrix_clustering_DB.png',
-    'C' = 'SAGE_topic_scalexdifficulty_topic_clustering_CH.png',
-    'D' = 'SAGE_topic_scalexdifficulty_topic_clustering_DB.png'
+    'A' = 'SAGE_scales_matrix_scalexdifficulty_matrix_clustering_CH.png',
+    'B' = 'SAGE_scales_matrix_scalexdifficulty_matrix_clustering_DB.png',
+    'C' = 'SAGE_scales_topic_scalexdifficulty_topic_clustering_CH.png',
+    'D' = 'SAGE_scales_topic_scalexdifficulty_topic_clustering_DB.png'
   )
   
   student_fig_list = list(
-    'A' = 'SAGE_full_students_PCA.png',
-    'B' = 'SAGE_full_students/type_sct-x-y-var_Gender_motherTongue.png',
-    'C' = 'SAGE_full_students/type_sct-z-y-var_Gender_motherTongue.png',
-    'D' = 'SAGE_full_dim_students/type_kde-x-None-var_Gender_motherTongue.png',
-    'E' = 'SAGE_full_dim_students/type_kde-y-None-var_Gender_motherTongue.png',
-    'F' = 'SAGE_full_dim_students/type_kde-z-None-var_Gender_motherTongue.png'
+    'A' = 'SAGE_scales_full_students_PCA.png',
+    'B' = 'SAGE_scales_full_students/type_sct-x-y-var_Gender_motherTongue.png',
+    'C' = 'SAGE_scales_full_students/type_sct-z-y-var_Gender_motherTongue.png',
+    'D' = 'SAGE_scales_full_dim_students/type_kde-x-None-var_Gender_motherTongue.png',
+    'E' = 'SAGE_scales_full_dim_students/type_kde-y-None-var_Gender_motherTongue.png',
+    'F' = 'SAGE_scales_full_dim_students/type_kde-z-None-var_Gender_motherTongue.png'
   )
   
   #edge_fig_list = list(

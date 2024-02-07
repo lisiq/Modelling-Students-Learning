@@ -13,6 +13,10 @@ papermill -p IRT_DIMS 0 -p DATASET full -p ITEM_FEATURES False GNN_final.ipynb |
 # with scales
 papermill -p IRT_DIMS 0 -p DATASET full -p ITEM_FEATURES True GNN_final.ipynb | jupyter-nbconvert --stdin --no-input --to html --output vis/GNN_batch_SAGE_full_scales.html > logs/GNN_batch_SAGE_full_scales.log
 
+## matrix and topic IRT
+papermill -p IRT_DIMS 1 -p DATASET matrix -p ITEM_FEATURES False GNN_final.ipynb | jupyter-nbconvert --stdin --no-input --to html --output vis/GNN_batch_IRT_matrix.html > logs/GNN_batch_IRT_matrix.log 
+papermill -p IRT_DIMS 1 -p DATASET topic -p ITEM_FEATURES False GNN_final.ipynb | jupyter-nbconvert --stdin --no-input --to html --output vis/GNN_batch_IRT_topic.html > logs/GNN_batch_IRT_topic.log 
+
 ## full IRT
 papermill -p IRT_DIMS 1 -p DATASET full -p ITEM_FEATURES False GNN_final.ipynb | jupyter-nbconvert --stdin --no-input --to html --output vis/GNN_batch_IRT_full.html > logs/GNN_batch_IRT_full.log 
 
