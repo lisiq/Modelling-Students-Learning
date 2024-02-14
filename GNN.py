@@ -5,6 +5,8 @@ from torch_geometric.nn import BatchNorm, SAGEConv
 from tqdm import tqdm
 
 
+
+
 class GNNEncoder(torch.nn.Module):
     def __init__(self, hidden_channels):
         super().__init__()
@@ -21,13 +23,13 @@ class GNNEncoder(torch.nn.Module):
 
         for i in range(len(self.hidden_channels)-2):
             x = F.elu(self.layers[i](x, edge_index))
-            x = F.dropout(x, training=self.training, p=0.2)
+            # x = F.dropout(x, training=self.training, p=0.2)
 
             x = self.batch_norm_layers[i](x)
 
         x = self.layers[-1](x, edge_index)
         x = F.elu(x)
-        x = F.dropout(x, training=self.training, p=0.2)
+        # x = F.dropout(x, training=self.training, p=0.2)
         x = self.batch_norm_layers[-1](x)
 
         return x
@@ -50,6 +52,6 @@ class Classifier_heterogeneous(torch.nn.Module):
             x =F.elu( self.linear(torch.cat([edge_feat_student, edge_feat_item], dim=-1)))
         else:
             x = self.linear(torch.cat([edge_feat_student, edge_feat, edge_feat_item], dim=-1))
-        x = F.dropout(x, training=self.training, p=0.2)
+        # x = F.dropout(x, training=self.training, p=0.2)
         x = self.linear_2(x)
         return x 
