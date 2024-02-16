@@ -53,8 +53,9 @@ OUT_DIR = file.path(FIG_DIR,  'paper')
 if (T) {
   
   item_fig_list = list(
-    'A' = 'SAGE_scales_full_items_PCA.png',
-    'B' = 'SAGE_scales_full_dim_items/type_reg-x-None-var_IRT1_difficulty.png',
+    '_' = 'SAGE_scales_full_items_PCA.png',
+    'A' = 'SAGE_scales_full_dim_items/type_reg-x-None-var_IRT1_difficulty.png',
+    'B' = 'SAGE_scales_full_dim_items/type_reg-y-None-var_IRT1_difficulty.png',
     'C' = 'SAGE_scales_full_dim_items/type_reg-y-None-var_IRT1_difficulty.png',
     'D' = 'SAGE_scales_full_dim_items/type_reg-x-None-var_IRT1_discrimination_transf.png', 
     'E' = 'SAGE_scales_full_dim_items/type_reg-y-None-var_IRT1_discrimination_transf.png', 
@@ -111,13 +112,26 @@ if (T) {
   #  'D' = 'SAGE_full_frequency_edges.png'
   #)
   # frequency/ amount
+  # sotphere
+  # 
+  # myfigs2 = ggarrange(plotlist = read_list(item_fig_list[2:7]),
+  #   labels = labels, ncol=3, nrow=2, font.label = FONT.LABEL)
+  # myfigs2 = ggarrange(plotlist = read_list(item_fig_list[2:7]),
+  #   labels = labels, ncol=3, nrow=2, font.label = FONT.LABEL)
+  # ggsave(filename = file.path(OUT_DIR, figname), 
+  #   plot = myfigs,
+  #   dpi = DPI,
+  #   width = WIDTH*ncol,   
+  #   height = HEIGHT*nrow,
+  #   units = "in")
   
   
-  save_fig("Fig_Items.png", item_fig_list, nrow=2, ncol=3)
+  save_fig("Fig_Item_PCA.png", item_fig_list[1], nrow=1, ncol=1, wlabel=F)
+  save_fig("Fig_Items.png", item_fig_list[2:7], nrow=2, ncol=3)
   save_fig("Fig_Distance.png", distances_fig_list, nrow=2, ncol=3)
   save_fig("Fig_Cluster.png", cluster_fig_list, nrow=3, ncol=2)
   save_fig("Fig_ClusterSupp1.png", cluster_supp_fig_list1, nrow=2, ncol=2)
-  save_fig("Fig_ClusterSupp2.png", cluster_supp_fig_list1, nrow=2, ncol=1)
+  save_fig("Fig_ClusterSupp2.png", cluster_supp_fig_list2, nrow=2, ncol=1)
   save_fig("Fig_Students.png", student_fig_list, nrow=2, ncol=3)
   #save_fig("Fig_Edges.png", edge_fig_list, nrow=2, ncol=2)
   
