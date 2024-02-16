@@ -259,9 +259,7 @@ def generate_synthetic_geometric_interactions(
     # GENERATING NODE POSITIONS AND PLOTTING THEM 
     # NB: ALSO SETTING RADIUS USED BELOW
     student_geom = np.random.rand(n_students,dimension)
-    student_ids = range(n_students)
     items_geom = np.random.rand(n_items,dimension)
-    items_id = range(n_students, n_students+n_items)
 
     # OBTAINING PROBABILITY (AND PLOTTING PATTERNS FOR ON EDGES -- POSITION TAKING AVERAGE BETWEEN NODES INVOLVED IN THE INTERACTIONS)
     label_probs = []
