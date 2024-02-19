@@ -320,6 +320,98 @@ def create_data_object_synthetic_heterogeneous(n_students,n_tasks,edge_indices,y
     del data['item', 'rev_responds', 'student'].y  # Remove 'reverse' label.
     return data
 
+def create_data_object_heterogeneous_temporal(df, return_aux_data=False, item_features=True, student_features=True):
+    data = HeteroData()
+
+    scales = df.scale
+    scales_oh = scales.str.get_dummies('|')
+    scale_features = torch.from_numpy(scales_oh.values).to(torch.float)
+    
+    df = df.sort_values(['studentId', 'age'])
+    # Save node indices
+    #data['student'].node_id = torch.arange(df.studentId.nunique())
+    df['student_age'] = df['studentId']*1000 + df['age'] 
+    student_age_to_index = {k:v for v,k in zip(range(df.student_age.nunique()), df.student_age.unique().tolist())}
+    df.student_age = df.student_age.apply(lambda x: student_age_to_index[x])
+
+    data['student'].node_id = torch.arange(df.student_age.nunique()) # leave the name student for compatibility, but it means student_age
+    data['item'].node_id = torch.arange(df.code.nunique())
+    
+    
+    # Add the node features
+    # there seems to be students with different mother tongue and gender in different occasions
+    df_student = df.groupby('student_age').agg({'age': 'mean', 'grade': 'mean',
+                                              'motherTongue': mymode, 'Gender': mymode, 'studentId': 'first'}).reset_index()
+    
+    # adding studentId here for btching, will not be a feature
+    if student_features:
+        data['student'].x = torch.from_numpy(df_student[['motherTongue',  'Gender', 'studentId']].values).to(torch.float)
+        
+    rem_dup = df[['code', 'scale']].drop_duplicates()
+    rem_dup_index = rem_dup.index
+    #data['item'].x = torch.from_numpy(df[['scale']].values)[rem_dup_index].to(torch.float)
+    if item_features:
+        data['item'].x = scale_features[rem_dup_index] 
+        
+    df_item = pd.DataFrame({  'scale' : scales[rem_dup_index], 
+                              'matrix': df.matrix[rem_dup_index],
+                              'IRT_difficulty': df.IRT_difficulty[rem_dup_index],
+                              'matdiff': df.matdiff[rem_dup_index],
+                              'topic': df.topic[rem_dup_index],
+                              'responseformat': df.responseformat[rem_dup_index],
+                              'textlength': df.textlength[rem_dup_index]
+                           })
+
+
+    df_item['domain'] = df_item['scale'].apply(lambda x: x[0])
+
+    # Add the edge indices
+    data['student', 'responds', 'item'].edge_index = torch.from_numpy(df[['student_age', 'code']].values.T)
+
+    # Add the edge attributes
+    df_edge = df[['age', 'grade', 'ability']]
+    #df_edge = df[['age', 'grade']].sample(frac=1).reset_index(drop=True)
+
+    data['student', 'responds', 'item'].edge_attr = torch.from_numpy(df[['age', 'grade']].values).to(torch.float)
+    
+    # connect a student-age with the next student-age
+    df_student_age = df[['studentId', 'age', 'student_age']].drop_duplicates().sort_values(['studentId', 'age'])
+    df_student_age['next_student_age'] = df_student_age.groupby('studentId').student_age.shift(periods=-1)
+    
+    #data['student_id'] = df_student_age['studentId'].values # to map the ids
+
+    df_student_age = df_student_age.dropna().astype('int')
+    df_student_age['age_diff'] = df_student_age['next_student_age'] - df_student_age['student_age'] 
+        
+    # Add the edge label (only for responding)
+    #data['student', 'responds', 'item'].edge_label = torch.tensor(df['score'].values)
+    data['student', 'responds', 'item'].y = torch.tensor(df['score'].values)
+
+    
+    # We use T.ToUndirected() to add the reverse edges from item to students 
+    # in order to let GNN pass messages in both ways
+    # Add a reverse ('item', 'rev_takes', 'student') relation for message passing:
+    
+    data = T.ToUndirected()(data)
+    del data['item', 'rev_responds', 'student'].edge_attr  
+    #del data['item', 'rev_responds', 'student'].edge_label # Remove 'reverse' label.
+    del data['item', 'rev_responds', 'student'].y
+
+    #del data['student', 'rev_preceeds', 'student'].edge_attr  
+
+    assert not hasattr(data['student', 'preceeds', 'student'], 'y') # no labels between students
+    #assert not hasattr(data['student', 'rev_preceeds', 'student'], 'y') # no labels between students
+    
+    # only in one direction
+    data['student', 'preceeds', 'student'].edge_index = torch.from_numpy(df_student_age[['student_age', 'next_student_age']].values.T)
+    data['student', 'preceeds', 'student'].edge_attr = torch.from_numpy(df_student_age[['age_diff', 'age']].values).to(torch.float)
+
+    if return_aux_data:
+        return data, df_student, df_student_age, df_item, df_edge
+    else:
+        return data
+
+
 def create_data_object_synthetic_geometric(n_students,n_tasks,edge_indices, y, ability, difficulty):
     data  = HeteroData()
 
@@ -384,16 +476,28 @@ def subgraph(input_data, index):
 
     # Add the edge label
     data['student', 'responds', 'item'].y =  input_data['student', 'responds', 'item'].y[index]
-
-    # We use T.ToUndirected() to add the reverse edges from subject to students 
-    # in order to let GNN pass messages in both ways
+        
+        # We use T.ToUndirected() to add the reverse edges from subject to students 
+        # in order to let GNN pass messages in both ways
     data = T.ToUndirected()(data)
 
     try:
         del data['item', 'rev_responds', 'student'].edge_attr  # Remove 'reverse' label.
     except AttributeError:
-        pass    
+        pass
+    
     del data['item', 'rev_responds', 'student'].y  # Remove 'reverse' label.
+    
+    # only in one direction
+    if ('student', 'preceeds', 'student') in input_data.edge_types:
+        data['student', 'preceeds', 'student'].edge_index = input_data['student', 'preceeds', 'student'].edge_index
+
+        try: 
+            # Add the edge attrs
+            data['student', 'preceeds', 'student'].edge_attr = input_data['student', 'preceeds', 'student'].edge_attr
+        except AttributeError:
+            pass
+
     return data
 
 

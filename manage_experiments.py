@@ -1,4 +1,4 @@
-from Heterogeneous_embedder import EmbedderHeterogeneous, train_embedder_heterogeneous, test_embedder_heterogeneous
+from Heterogeneous_temporal_embedder import EmbedderHeterogeneous, train_embedder_heterogeneous, test_embedder_heterogeneous
 from sklearn.model_selection import KFold, train_test_split
 from tqdm import tqdm
 import numpy as np
@@ -122,7 +122,6 @@ def perform_cross_validation(data, parameters, save_embeddings=False, save_subgr
             neighbours = [10, 10]
         else:
             neighbours = parameters['neighbours']
-            
         train_loader = NeighborLoader(train_subgraph_data, 
                                     num_neighbors = {key: neighbours for key in train_subgraph_data.edge_types}, 
                                     input_nodes=('student', train_subgraph_data['student'].node_id),
@@ -156,7 +155,7 @@ def perform_cross_validation(data, parameters, save_embeddings=False, save_subgr
             else:
                 edge_dim = data['student', 'responds', 'item'].edge_attr.shape[1]
                 model = EmbedderHeterogeneous( 
-                    n_students = data['student'].node_id.size(0),
+                    n_students = data['student'].node_id.size(0) if not 'student_id' in data else len(np.unique(data['student'].x[:, -1])),
                     n_items = data['item'].node_id.size(0),
                     student_inchannel = student_inchannel,
                     item_inchannel = item_inchannel,
@@ -193,7 +192,7 @@ def perform_cross_validation(data, parameters, save_embeddings=False, save_subgr
         early_stopping = 0
         criterion = torch.nn.BCEWithLogitsLoss(pos_weight=torch.tensor([(total_samples - pos)/pos]).to(device))#class_weights)
         for epoch in tqdm(range(1, parameters['epochs']+1)):
-            for batch in tqdm(train_loader): 
+            for batch in tqdm(train_loader, mininterval=30): 
                 batch = batch.to(device)
                 loss = train_loop(
                     model,
