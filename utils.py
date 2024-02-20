@@ -345,7 +345,7 @@ def create_data_object_heterogeneous_temporal(df, return_aux_data=False, item_fe
     
     # adding studentId here for btching, will not be a feature
     if student_features:
-        data['student'].x = torch.from_numpy(df_student[['motherTongue',  'Gender', 'studentId']].values).to(torch.float)
+        data['student'].x = torch.from_numpy(df_student[['age', 'motherTongue',  'Gender', 'studentId']].values).to(torch.float)
         
     rem_dup = df[['code', 'scale']].drop_duplicates()
     rem_dup_index = rem_dup.index
@@ -404,7 +404,8 @@ def create_data_object_heterogeneous_temporal(df, return_aux_data=False, item_fe
     
     # only in one direction
     data['student', 'preceeds', 'student'].edge_index = torch.from_numpy(df_student_age[['student_age', 'next_student_age']].values.T)
-    data['student', 'preceeds', 'student'].edge_attr = torch.from_numpy(df_student_age[['age_diff', 'age']].values).to(torch.float)
+    # add edge attributes
+    #data['student', 'preceeds', 'student'].edge_attr = torch.from_numpy(df_student_age[['age_diff', 'age']].values).to(torch.float)
 
     if return_aux_data:
         return data, df_student, df_student_age, df_item, df_edge
@@ -479,24 +480,48 @@ def subgraph(input_data, index):
         
         # We use T.ToUndirected() to add the reverse edges from subject to students 
         # in order to let GNN pass messages in both ways
-    data = T.ToUndirected()(data)
+    if True:
+        data = T.ToUndirected()(data)
 
-    try:
-        del data['item', 'rev_responds', 'student'].edge_attr  # Remove 'reverse' label.
-    except AttributeError:
-        pass
-    
-    del data['item', 'rev_responds', 'student'].y  # Remove 'reverse' label.
-    
-    # only in one direction
-    if ('student', 'preceeds', 'student') in input_data.edge_types:
-        data['student', 'preceeds', 'student'].edge_index = input_data['student', 'preceeds', 'student'].edge_index
-
-        try: 
-            # Add the edge attrs
-            data['student', 'preceeds', 'student'].edge_attr = input_data['student', 'preceeds', 'student'].edge_attr
+        try:
+            del data['item', 'rev_responds', 'student'].edge_attr  # Remove 'reverse' attr
         except AttributeError:
             pass
+
+        del data['item', 'rev_responds', 'student'].y  # Remove 'reverse' label.
+
+        # only in one direction
+        if ('student', 'preceeds', 'student') in input_data.edge_types:
+            data['student', 'preceeds', 'student'].edge_index = input_data['student', 'preceeds', 'student'].edge_index
+
+            try: 
+                # Add the edge attrs if there
+                data['student', 'preceeds', 'student'].edge_attr = input_data['student', 'preceeds', 'student'].edge_attr
+            except AttributeError:
+                pass
+    else:
+        if ('student', 'preceeds', 'student') in input_data.edge_types:
+            data['student', 'preceeds', 'student'].edge_index = input_data['student', 'preceeds', 'student'].edge_index
+            
+            try:
+                # Add the edge attrs
+                data['student', 'preceeds', 'student'].edge_attr = input_data['student', 'preceeds', 'student'].edge_attr
+            except AttributeError:
+                pass
+
+        data = T.ToUndirected()(data)
+
+        try:
+            del data['item', 'rev_responds', 'student'].edge_attr  
+            del data['item', 'rev_responds', 'student'].edge_attr  
+        except AttributeError:
+            pass
+
+        del data['item', 'rev_responds', 'student'].y  # Remove 'reverse' label.
+
+        # only in one direction
+
+        
 
     return data
 

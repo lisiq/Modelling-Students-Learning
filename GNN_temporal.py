@@ -2,64 +2,67 @@ import torch
 import torch.nn.functional as F
 from tqdm import tqdm
 from torch_geometric.nn import HeteroConv, GCNConv, SAGEConv, BatchNorm
-from torch.nn import Linear, Parameter
+from torch.nn import Linear, Parameter, Sequential, ELU
 from torch_geometric.nn import MessagePassing
 
 class SimpleConv(MessagePassing):
-    def __init__(self, in_channels, out_channels):
-        super().__init__(aggr='add')  # "Add" aggregation (Step 5).
-        self.lin = Linear(in_channels, out_channels, bias=False)
-        self.bias = Parameter(torch.empty(out_channels))
-
-        self.reset_parameters()
-
-    def reset_parameters(self):
-        self.lin.reset_parameters()
-        self.bias.data.zero_()
+    def __init__(self, channels):
+        super().__init__(aggr='mean') 
+        self.mlp = Sequential(
+                   Linear(2 * channels, channels),
+                   ELU(),
+                   Linear(channels, channels))       
 
     def forward(self, x, edge_index):
-        # x has shape [N, in_channels]
-        # edge_index has shape [2, E]
+        # x has shape [N, channels]
 
-        # Linearly transform node feature matrix.
-        x = self.lin(x)
+        return self.propagate(edge_index, x=x)
 
-        # Start propagating messages.
-        out = self.propagate(edge_index, x=x)
+    def message(self, x_i, x_j):
+        
+        # assumes first feature is age
+        tmp = torch.cat([x_j, x_i - x_j], dim=1)  
 
-        # Apply a final bias vector.
-        out += self.bias
-
-        return out
-
-    def message(self, x_j):
-        # x_j has shape [E, out_channels]
-
-        # Step 4: Normalize node features.
-        return x_j
-
+        # transform linearly
+        return self.mlp(tmp)
+                           
 class GNNEncoder(torch.nn.Module):
     def __init__(self, hidden_channels):
         super().__init__()
         self.hidden_channels = hidden_channels
         self.layers = torch.nn.ModuleList()
         self.batch_norm_layers = torch.nn.ModuleList()
-
-        for i in range(len(hidden_channels)-1):
+        
+        print(hidden_channels)
+        if True:
             conv = HeteroConv({
-                ('student', 'responds', 'item'): SAGEConv(hidden_channels[i], hidden_channels[i+1]),
-                ('item', 'rev_responds', 'student'): SAGEConv(hidden_channels[i], hidden_channels[i+1]),
-                ('student', 'preceeds', 'student'): SimpleConv(hidden_channels[i], hidden_channels[i+1])
+                    ('student', 'responds', 'item'): SAGEConv(hidden_channels[0], hidden_channels[1]),
+                    ('item', 'rev_responds', 'student'): SAGEConv(hidden_channels[0], hidden_channels[1]),
+                    ('student', 'preceeds', 'student'): SimpleConv(hidden_channels[0])
             }, aggr='mean')  
             self.layers.append(conv)
-            self.batch_norm_layers.append(BatchNorm(hidden_channels[i+1]))
+            self.batch_norm_layers.append(BatchNorm(hidden_channels[0]))
+        
+        else:
+            # for now using only one layer
+            for i in range(len(hidden_channels)-1):
+                print(i, hidden_channels[i], hidden_channels[i+1])
+                conv = HeteroConv({
+                    ('student', 'responds', 'item'): SAGEConv(hidden_channels[i], hidden_channels[i+1]),
+                    ('item', 'rev_responds', 'student'): SAGEConv(hidden_channels[i], hidden_channels[i+1]),
+                    ('student', 'preceeds', 'student'): SimpleConv(hidden_channels[i], hidden_channels[i+1])
+                }, aggr='mean')  
+                self.layers.append(conv)
+                self.batch_norm_layers.append(BatchNorm(hidden_channels[i+1]))
             
     def forward(self, x_dict, edge_index_dict):
             
-        for i in range(len(self.hidden_channels)-2):
-            x_dict = self.layers[i](x_dict, edge_index_dict)
-            x_dict['item'] = F.elu(x_dict['item'])
-            x_dict['item'] = self.batch_norm_layers[i](x_dict['item'])
+        if False:
+            # for now using only one layer
+            for i in range(len(self.hidden_channels)-2):
+                x_dict = self.layers[i](x_dict, edge_index_dict)
+                x_dict['item'] = F.elu(x_dict['item'])
+                x_dict['item'] = self.batch_norm_layers[i](x_dict['item'])
 
         x_dict = self.layers[-1](x_dict, edge_index_dict)
         x_dict['item'] = F.elu(x_dict['item'])
@@ -70,8 +73,8 @@ class Classifier_heterogeneous(torch.nn.Module):
     def __init__(self, input_channel, edge_dim):
         super().__init__()
         # output is bi-dimensional because and item is either passed or not
-        self.linear = Linear(2*input_channel, 32) # changed to 1 from 2
-        self.linear_2 = Linear(32, 1)
+        self.linear = Linear(2*input_channel, 16) # changed to 1 from 2
+        self.linear_2 = Linear(16, 1)
 
     def forward(self, x_student, x_item, edge_label_index, edge_feat):
         #print(x_student)

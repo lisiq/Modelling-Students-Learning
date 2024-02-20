@@ -11,9 +11,9 @@ from utils import calculate_metrics
 def get_features(data, degree):
     # add polynomial functions of features and separate student_id
     student_id = data['student'].x[:, -1].to(torch.int)
+    student_feat = data['student'].x[:, :-1]
     if degree > 1:
-        student_feat = data['student'].x[:, :-1]
-        student_feat0 = student_feat
+        student_feat0 = data['student'].x[:, :-1]
         for i in range(1, degree):
             student_feat = torch.cat([student_feat, student_feat0**(i+1)], dim=-1)
 
@@ -31,10 +31,11 @@ class EmbedderHeterogeneous(torch.nn.Module):
             metadata, # data.metadata()
             lambda1=0, 
             lambda2=0,
-            degree=2 # for polynomials of the features
+            degree=1 # for polynomials of the features
             # heads
             ):
         super().__init__()
+
         
         print('Parameters')
         print({
@@ -86,7 +87,7 @@ class EmbedderHeterogeneous(torch.nn.Module):
     def forward(self, data):
         
         student_id, student_feat = get_features(data, self.degree)
-        
+       
         if self.student_lin is not None:
             # last column of the features is the student id
             self.student_x = self.student_lin(student_feat) + self.student_emb(student_id) # self.student_emb(data['student'].node_id)
