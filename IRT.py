@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from utils import calculate_metrics
     
 class MIRT_2PL(torch.nn.Module):
-    def __init__(self, ndims, edge_dim, data, degree=2, lambda1=0, lambda2=0):
+    def __init__(self, ndims, edge_dim, data, degree=1, lambda1=0, lambda2=0):
         super().__init__()
         
         self.degree = degree # allow for non-linear effects   

@@ -6,13 +6,16 @@ from torch.nn import Linear, Parameter, Sequential, ELU
 from torch_geometric.nn import MessagePassing
 
 class SimpleConv(MessagePassing):
-    def __init__(self, channels):
-        super().__init__(aggr='mean') 
-        self.mlp = Sequential(
-                   Linear(2 * channels, channels),
-                   ELU(),
-                   Linear(channels, channels))       
-
+    def __init__(self, in_channels, out_channels):
+        super().__init__(aggr='mean')
+        if True:
+            self.mlp = Sequential(
+                       Linear(2 * in_channels, out_channels),
+                       ELU(),
+                       Linear(out_channels, out_channels))       
+        else:
+            self.mlp = Linear(2 * in_channels, out_channels)
+        
     def forward(self, x, edge_index):
         # x has shape [N, channels]
 
@@ -35,13 +38,22 @@ class GNNEncoder(torch.nn.Module):
         
         print(hidden_channels)
         if True:
-            conv = HeteroConv({
+            conv1 = HeteroConv({
                     ('student', 'responds', 'item'): SAGEConv(hidden_channels[0], hidden_channels[1]),
                     ('item', 'rev_responds', 'student'): SAGEConv(hidden_channels[0], hidden_channels[1]),
-                    ('student', 'preceeds', 'student'): SimpleConv(hidden_channels[0])
+                    ('student', 'preceeds', 'student'): SimpleConv(hidden_channels[0], hidden_channels[1])
             }, aggr='mean')  
-            self.layers.append(conv)
-            self.batch_norm_layers.append(BatchNorm(hidden_channels[0]))
+            #conv2 = HeteroConv({
+            #        ('student', 'responds', 'item'): SAGEConv(hidden_channels[1], hidden_channels[1]),
+            #        ('item', 'rev_responds', 'student'): SAGEConv(hidden_channels[1], hidden_channels[1])
+            #}, aggr='mean')  
+            self.layers.append(conv1)
+            #self.layers.append(conv2)
+            # need to be different?
+            self.batch_norm_layers.append(BatchNorm(hidden_channels[1]))
+            self.batch_norm_layers.append(BatchNorm(hidden_channels[1]))
+            #self.batch_norm_layers.append(BatchNorm(hidden_channels[1]))
+            #self.batch_norm_layers.append(BatchNorm(hidden_channels[1]))
         
         else:
             # for now using only one layer
@@ -58,15 +70,20 @@ class GNNEncoder(torch.nn.Module):
     def forward(self, x_dict, edge_index_dict):
             
         if False:
-            # for now using only one layer
+            # for now manually
             for i in range(len(self.hidden_channels)-2):
                 x_dict = self.layers[i](x_dict, edge_index_dict)
                 x_dict['item'] = F.elu(x_dict['item'])
                 x_dict['item'] = self.batch_norm_layers[i](x_dict['item'])
 
-        x_dict = self.layers[-1](x_dict, edge_index_dict)
-        x_dict['item'] = F.elu(x_dict['item'])
-        x_dict['item'] = self.batch_norm_layers[-1](x_dict['item'])
+        x_dict = self.layers[0](x_dict, edge_index_dict)
+        x_dict = { k: F.elu(v) for k, v in x_dict.items() } 
+        x_dict['item'] = self.batch_norm_layers[0](x_dict['item'])
+        x_dict['student'] = self.batch_norm_layers[1](x_dict['student'])
+#        x_dict = self.layers[1](x_dict, edge_index_dict)
+#        x_dict = { k: F.elu(v) for k, v in x_dict.items() } 
+#        x_dict['item'] = self.batch_norm_layers[2](x_dict['item'])
+#        x_dict['student'] = self.batch_norm_layers[3](x_dict['student'])
         return x_dict
 
 class Classifier_heterogeneous(torch.nn.Module):
