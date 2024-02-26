@@ -49,9 +49,9 @@ class Classifier_heterogeneous(torch.nn.Module):
 
         # concatenate node representations with edge features, and obtain edge feature
         if edge_feat is None: # for the synthetic dataset
-            x =F.elu( self.linear(torch.cat([edge_feat_student, edge_feat_item], dim=-1)))
+            x = F.elu(self.linear(torch.cat([edge_feat_student, edge_feat_item], dim=-1)))
         else:
-            x = self.linear(torch.cat([edge_feat_student, edge_feat, edge_feat_item], dim=-1))
+            x = F.elu(self.linear(torch.cat([edge_feat_student, edge_feat, edge_feat_item], dim=-1)))
         # x = F.dropout(x, training=self.training, p=0.2)
         x = self.linear_2(x)
         return x 
