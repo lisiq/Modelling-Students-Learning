@@ -143,27 +143,17 @@ def perform_cross_validation(data, parameters, save_embeddings=False, save_subgr
             student_inchannel = data['student'].x.size(1) if hasattr(data['student'], 'x') else None
             item_inchannel = data['item'].x.size(1) if hasattr(data['item'], 'x') else None
             
-            if parameters['df_name'] in ['synthetic.salamoia']:
-                    model = EmbedderHeterogeneous( 
-                    n_students =  data['student'].node_id.size(0),
-                    n_items = data['item'].node_id.size(0),
-                    student_inchannel = student_inchannel,
-                    item_inchannel = item_inchannel,
-                    hidden_channels = parameters['hidden_dims'],
-                    edge_channel = None,
-                    metadata=data.metadata()
-                    ).to(device)
-            else:
-                edge_dim = data['student', 'responds', 'item'].edge_attr.shape[1]
-                model = EmbedderHeterogeneous( 
-                    n_students = data['student'].node_id.size(0),
-                    n_items = data['item'].node_id.size(0),
-                    student_inchannel = student_inchannel,
-                    item_inchannel = item_inchannel,
-                    hidden_channels = parameters['hidden_dims'],
-                    edge_channel = edge_dim,
-                    metadata = data.metadata()
-                    ).to(device)
+            
+            edge_dim = data['student', 'responds', 'item'].edge_attr.shape[1]
+            model = EmbedderHeterogeneous( 
+                n_students = data['student'].node_id.size(0),
+                n_items = data['item'].node_id.size(0),
+                student_inchannel = student_inchannel,
+                item_inchannel = item_inchannel,
+                hidden_channels = parameters['hidden_dims'],
+                edge_channel = edge_dim,
+                metadata = data.metadata()
+                ).to(device)
                 
         elif parameters['model_type'] == 'IRT':
             edge_dim = data['student', 'responds', 'item'].edge_attr.shape[1]
