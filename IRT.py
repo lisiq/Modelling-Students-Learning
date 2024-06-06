@@ -23,6 +23,7 @@ class MIRT_2PL(torch.nn.Module):
         #self.classifier = EdgeClassifier(hidden_channels[-1], edge_dim)
         #self.classifier = EdgeClassifier_ability(hidden_channels[-1], hidden_channels[-1], edge_dim)
 
+    # Not used
     def get_penalty(self):
         """
         Regularization penalty.

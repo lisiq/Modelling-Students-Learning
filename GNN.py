@@ -16,8 +16,8 @@ class GNNEncoder(torch.nn.Module):
         self.batch_norm_layers = torch.nn.ModuleList()
         
         for i in range(len(hidden_channels)-1):
-            self.layers.append(SAGEConv(hidden_channels[i], hidden_channels[i+1]))
-            self.batch_norm_layers.append(BatchNorm(hidden_channels[i+1]))
+            self.layers.append(SAGEConv(hidden_channels[i], hidden_channels[i+1], aggr='mean'))
+            # self.batch_norm_layers.append(BatchNorm(hidden_channels[i+1]))
 
     def forward(self, x, edge_index):
 
@@ -25,12 +25,12 @@ class GNNEncoder(torch.nn.Module):
             x = F.elu(self.layers[i](x, edge_index))
             # x = F.dropout(x, training=self.training, p=0.2)
 
-            x = self.batch_norm_layers[i](x)
+            # x = self.batch_norm_layers[i](x)
 
         x = self.layers[-1](x, edge_index)
         x = F.elu(x)
         # x = F.dropout(x, training=self.training, p=0.2)
-        x = self.batch_norm_layers[-1](x)
+        # x = self.batch_norm_layers[-1](x)
 
         return x
     
