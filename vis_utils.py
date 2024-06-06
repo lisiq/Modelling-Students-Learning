@@ -24,8 +24,9 @@ NPERMS = 100
 POINTSIZE = 2
 LINEWIDTH = 0.5
 PERCENTILES = (0.01, 99.99)
-LEGEND_SIZE = 12
 MAX_PCS = 0 #8
+FONTSCALE = 1.6
+LEGEND_SIZE = 16
 
 FIGSIZE = (2*6.4, 2*4.8) #width, height
 FIGSIZE2 = (2*6.4, 4*4.8)
@@ -43,8 +44,10 @@ AGE_THR = 2
 
 CONTINUOUS_VARS =  ['age', 'ability', 'frequency', 'previous_sessions', 'years_from_start']
 
+COMP_NAMES = ['x','y','z','u','v']
 # labels
-COMP_LABELS = {'x': 'Component 1', 'y': 'Component 2', 'z': 'Component 3'}
+COMP_LABELS = {comp: f'Component {i}' for i, comp in enumerate(COMP_NAMES)}
+
 CLUSTER_LABELS = {'CH': 'Calinsky-Harabasz Index', 'DB': 'Inverse of Davies-Bouldin Index'}
 COMPETENCE_LABELS = {'matrix': 'Competences', 'topic': 'Topics'}
 
@@ -122,7 +125,8 @@ def save_plot(data, var, title, figname, x, y=None, plot_type='sct', equal_axes=
         axes.set_xlim(xlim)
         axes.set_xlabel(COMP_LABELS[x])
         axes.legend(title=title)        
-
+        axes.set_title(title)
+        
     if plot_type == 'kde':
         axes = sns.kdeplot(data=data, x=x, hue=var, common_norm=False)
         axes.set_xlim(xlim)
@@ -137,12 +141,12 @@ def save_plot(data, var, title, figname, x, y=None, plot_type='sct', equal_axes=
         axes.set_ylim(xlim)
         axes.set_ylabel(COMP_LABELS[x])
         axes.set_xlabel(title)
-        correlation, p_value = pearsonr(x, y)
-        axes.text(0.8, 0.9, f"Correlation: {correlation:.3f}", ha="right", va="top")
-        axes.text(0.8, 0.85, f"p-value: {p_value:.3f}", ha="right", va="top")
-
+        xx = data[var].values        
+        yy = data[x].values
+        correlation, p_value = pearsonr(xx[~np.isnan(xx)], yy[~np.isnan(xx)])
+        axes.text(0.9, 0.95, f"r={correlation:.3f} (p={p_value:.3f})", ha="right", va="top", transform = axes.transAxes)
         
-    axes.set_title(title)
+    
     axes.legend(prop = { 'size': LEGEND_SIZE })
     
     if not with_legend:
@@ -156,13 +160,13 @@ def save_plot(data, var, title, figname, x, y=None, plot_type='sct', equal_axes=
     plt.close()
     
 @torch.no_grad()
-def visualize_students(model, data, device, df_student, OUTNAME, dims=('x', 'y'), equal_axes=False):
+def visualize_students(model, data, device, df_student, OUTNAME, dims=('x', 'y'), equal_axes=False, encoded=True):
 
     data = data.to(device)
     try:
         pred, z_dict, z_edge = model(data)
     except:
-        z_dict = model.get_embeddings(data)
+        z_dict = model.get_embeddings(data, encoded=encoded)
     embedding = z_dict['student'].detach().cpu().numpy()
 
     dimred.fit(embedding)
@@ -171,13 +175,21 @@ def visualize_students(model, data, device, df_student, OUTNAME, dims=('x', 'y')
     X = df_student
     X['x'] = low_dim[:, 0]
     X['y'] = low_dim[:, 1]
-    X['z'] = low_dim[:, 2]
+    X['z'] = low_dim[:, 2]    
+    X['u'] = low_dim[:, 3]
+    X['v'] = low_dim[:, 4]
+
 
     X['Gender'] = X['Gender'].apply(lambda x: 'Male' if x == 1 else 'Female')
     X['motherTongue'] = X['motherTongue'].apply(lambda x: 'German' if x == 1 else 'Other')
     X['Gender_motherTongue'] = X['Gender'].str.cat(X['motherTongue'], sep =", ")
-
-    figname = f'{OUTNAME}_students'    
+    
+    if encoded:
+        suffix = ''    
+    else:
+        suffix = '_notenc'    
+        
+    figname = f'{OUTNAME}_students{suffix}'    
     save_plot(X, 'Gender', 'Gender', figname, x='x', y='y', plot_type='sct', equal_axes=equal_axes, with_legend=True)
     save_plot(X, 'motherTongue', 'Mother Tongue', figname, x='x', y='y', plot_type='sct', equal_axes=equal_axes, with_legend=True)
     save_plot(X, 'Gender_motherTongue', 'Gender x Mother Tongue', figname, x='x', y='y', plot_type='sct', equal_axes=equal_axes, with_legend=True)
@@ -190,8 +202,8 @@ def visualize_students(model, data, device, df_student, OUTNAME, dims=('x', 'y')
     save_plot(X, 'age', 'Age', figname, x='z', y='y', plot_type='sct', equal_axes=equal_axes, palette='viridis')
     save_plot(X, 'grade', 'Grade', figname, x='z', y='y', plot_type='sct', equal_axes=equal_axes, palette='viridis')      
 
-    figname = f'{OUTNAME}_dim_students'
-    for i, mydim in enumerate(['x', 'y', 'z']):
+    figname = f'{OUTNAME}_dim_students{suffix}'
+    for i, mydim in enumerate(COMP_NAMES):
         save_plot(X, 'Gender', 'Gender', figname, x=mydim, plot_type='kde')
         save_plot(X, 'motherTongue', 'Mother Tongue', figname, x=mydim, plot_type='kde')
         save_plot(X, 'Gender_motherTongue', 'Gender x Mother Tongue', figname, x=mydim, plot_type='kde')
@@ -211,17 +223,22 @@ def visualize_students(model, data, device, df_student, OUTNAME, dims=('x', 'y')
     plt.xlabel('Principal Component')
     plt.ylabel('Variance Explained (%)')        
     fig.tight_layout()
-    plt.savefig(f'./vis/{OUTNAME}_students_PCA.png', dpi=DPI)
+    plt.savefig(f'./vis/{OUTNAME}_students_PCA{suffix}.png', dpi=DPI)
     #myresults.add_fig('students_PCA', plt.gca())
         
 @torch.no_grad()
-def visualize_items(model, data, device, df_item, OUTNAME, dims=('x', 'y'), equal_axes=False):
+def visualize_items(model, data, device, df_item, OUTNAME, dims=('x', 'y'), equal_axes=False, encoded=True):
 
+    if encoded:
+        suffix = ''    
+    else:
+        suffix = '_notenc'    
+        
     data = data.to(device)
     try:
         pred, z_dict, z_edge = model(data)
     except:
-        z_dict = model.get_embeddings(data)        
+        z_dict = model.get_embeddings(data, encoded=encoded)        
     embedding = z_dict['item'].detach().cpu().numpy()
 
     dimred.fit(embedding)
@@ -234,7 +251,9 @@ def visualize_items(model, data, device, df_item, OUTNAME, dims=('x', 'y'), equa
     X['x'] = low_dim[:, 0]
     X['y'] = low_dim[:, 1]
     X['z'] = low_dim[:, 2]
-    figname = f'{OUTNAME}_items'
+    X['u'] = low_dim[:, 3]
+    X['v'] = low_dim[:, 4]
+    figname = f'{OUTNAME}_items{suffix}'
     save_plot(X, 'domain', 'Subject Domain', figname, x='x', y='y', plot_type='sct', equal_axes=equal_axes, with_legend=True)
     save_plot(X, 'scale', 'Competence Domain', figname, x='x', y='y', plot_type='sct', equal_axes=equal_axes)
     save_plot(X, 'IRT_difficulty', 'Difficulty', figname, x='x', y='y', plot_type='sct', equal_axes=equal_axes, palette='viridis')
@@ -249,8 +268,8 @@ def visualize_items(model, data, device, df_item, OUTNAME, dims=('x', 'y'), equa
     save_plot(X, 'IRT1_discrimination', 'Discrimination', figname, x='z', y='y', plot_type='sct', equal_axes=equal_axes, palette='viridis')
     save_plot(X, 'IRT1_discrimination_transf', 'Discrimination (transformed)', figname, x='z', y='y', plot_type='sct', equal_axes=equal_axes, palette='viridis')
 
-    figname = f'{OUTNAME}_dim_items'
-    for i, mydim in enumerate(['x', 'y', 'z']):
+    figname = f'{OUTNAME}_dim_items{suffix}'
+    for i, mydim in enumerate(COMP_NAMES):
         save_plot(X, 'domain', 'Subject Domain', figname, x=mydim, plot_type='kde')
         save_plot(X, 'scale', 'Competence Domain', figname, x=mydim, plot_type='kde')
         save_plot(X, 'IRT_difficulty', 'Difficulty', figname, x=mydim, plot_type='reg')
@@ -266,7 +285,10 @@ def visualize_items(model, data, device, df_item, OUTNAME, dims=('x', 'y'), equa
     #plt.sca(axes[1, 1])
     plt.plot(PC_values, dimred.explained_variance_ratio_*100, 'o-', linewidth=2, color='blue')
     plt.plot(PC_values, np.cumsum(dimred.explained_variance_ratio_)*100, 'o-', linewidth=2, color='red')
-    fig.legend(labels=['Variance', 'Cumulative \nvariance'], loc='center right', fontsize=8)
+    fig.legend(labels=['Variance', 'Cumulative variance'], loc='center', fontsize=10)
+    
+    print(dimred.explained_variance_ratio_*100)
+    print(np.cumsum(dimred.explained_variance_ratio_)*100)
     
     if MAX_PCS > 0:
         plt.xticks(PC_values[:MAX_PCS])
@@ -276,7 +298,7 @@ def visualize_items(model, data, device, df_item, OUTNAME, dims=('x', 'y'), equa
     plt.ylabel('Variance Explained (%)')
     fig.tight_layout()
     
-    plt.savefig(f'./vis/{OUTNAME}_items_PCA.png', dpi=DPI)
+    plt.savefig(f'./vis/{OUTNAME}_items_PCA{suffix}.png', dpi=DPI)
     #myresults.add_fig('items_PCA', plt.gca())
         
         
@@ -327,10 +349,13 @@ def visualize_edges_age(model, data, edge_indices, device, df, OUTNAME, dims=('x
     X['x'] = low_dim[:, 0]
     X['y'] = low_dim[:, 1]
     X['z'] = low_dim[:, 2]
+    X['u'] = low_dim[:, 3]
+    X['v'] = low_dim[:, 4]
+
 
     figname = f'{OUTNAME}_dim_edges'
     if not aggregate:
-        for i, mydim in enumerate(['x', 'y', 'z']):
+        for i, mydim in enumerate(COMP_NAMES):
             if hue_label in CONTINUOUS_VARS:
                 myresults.add_stats('student_%s_%s'%(hue_label, mydim), X[hue_label], X[mydim])
                 save_plot(X, hue_label, FEATURE_LABELS[hue_label], figname, x=mydim, plot_type='reg')
@@ -482,20 +507,38 @@ def get_range_means(s):
     m = np.mean(l)
     return m
 
-def plot_clustering(grouping_variable, target_variable, model, data, df_item, device, OUTNAME, minsamples=100, nperms=NPERMS):
+def plot_clustering(grouping_variable, target_variable, model, data, df_item, device, OUTNAME, minsamples=30, nperms=NPERMS, 
+                    minlevels=10, encoded=True):
 
-    scores_dict = {'CH': [], 'DB':[]}
+    scores_dict = {'CH': [], 'DB':[], 'N_LEVELS':[], 'N_SAMPLES':[]}
 
     for perm in range(nperms):
         #print(perm)
         scores = compute_clustering_indices(model, data, df_item, device, grouping_variable, 
-                                            target_variable, shuffle=perm>0, seed=0, minsamples=minsamples)
+                                            target_variable, shuffle=perm>0, seed=0, minsamples=minsamples, encoded=encoded)
         [ scores_dict[key].append(scores[key]) for key in scores_dict]
 
-    for i, index in enumerate(scores_dict):
+    for index in ['CH', 'DB']:
         scores_df = pd.DataFrame(scores_dict[index])
+        
         scores_df['perm'] = scores_df.index     
         scores_df = pd.melt(scores_df, id_vars='perm', value_name='index', var_name=grouping_variable)
+
+        scores_df['N_LEVELS'] = scores_df[grouping_variable].apply(lambda x: scores_dict['N_LEVELS'][0][x])
+        scores_df['N_SAMPLES'] = scores_df[grouping_variable].apply(lambda x: scores_dict['N_SAMPLES'][0][x])
+
+        fig = plt.subplots(ncols=2, nrows=1, figsize=FIGSIZE)
+        
+        ax = plt.subplot(1, 2, 1)
+        scores_df['N_LEVELS'].hist(ax=ax, bins=30)
+        ax = plt.subplot(1, 2, 2)
+        scores_df['N_SAMPLES'].hist(ax=ax, bins=30)        
+        plt.show()
+        plt.close()
+        scores_df = scores_df.loc[scores_df['N_LEVELS'] >= minlevels]
+        print(scores_df.shape)
+        if len(scores_df) == 0:
+            continue
         scores_df['random'] = 'Observed data'
         scores_df.loc[ scores_df['perm'] > 0, 'random'] = 'Shuffled data'
         scores_df['scale'] = scores_df['scalexdifficulty'].str.split().str[0]
@@ -504,11 +547,13 @@ def plot_clustering(grouping_variable, target_variable, model, data, df_item, de
         scores_df['difficulty_jit'] = scores_df['difficulty_num'] + np.random.normal(0, 0.05, size=len(scores_df['difficulty_num'])) 
         scores_df_ = scores_df.dropna().copy()
         #print(scores_df_)
-
-        fig, axes = plt.subplots(ncols=6, nrows=2, figsize=FIGSIZE, sharex=False, sharey=True)
-
-        for i, scale in enumerate(scores_df['scale'].unique()):
-            ax = plt.subplot(2, 6, i+1)
+        print(scores_df.shape)
+        unique_scales = scores_df_['scale'].unique()
+        ncols = (len(unique_scales)+1)//2
+        fig, axes = plt.subplots(ncols=ncols, nrows=2, figsize=FIGSIZE, sharex=True, sharey=True)
+        print(unique_scales)
+        for i, scale in enumerate(unique_scales):
+            ax = plt.subplot(2, ncols, i+1)
             print(i, scale)
             scores_df = scores_df_.loc[ scores_df_['scale'] == scale, :]
             maxscore_df = scores_df.groupby(['perm','random','difficulty_num'])['index'].max().reset_index()
@@ -533,24 +578,28 @@ def plot_clustering(grouping_variable, target_variable, model, data, df_item, de
                          y='index', # grouping variable
                          color='black',
                          size=0.5)
+            sns.scatterplot(ax=ax, data=scores_df.query('`random` == "Observed data"'), #.sort_values('index'), 
+                         x='difficulty_num', 
+                         y='index', # grouping variable
+                         color='black',
+                         size=1)
 
             ax.set_title(scale)
             ax.set_xlabel('Difficulty')
-            ax.set_ylabel('Cluster Validity Index Value')
-            ax.axhline(thr_global, color = 'red')
+            ax.set_ylabel('Cluster Validity Index')
+            ax.axhline(thr_global, color = 'red', linewidth=0.5)
             #ax.set(xticklabels=[])
             ax.legend_.remove()
             ax.label_outer()
-
-    #        fig.legend( labels=['Observed \ndata', '_', '_', 'Shuffled \ndata', 'Significance \nthreshold'], 
-    #                   loc=(0.84, 0.2), fontsize=13)
-        fig.legend( labels=['Significance \nthreshold \n(uncorrected)',
-                            '_', 'Observed \ndata', '_', 'Shuffled \ndata', 
-                            '_', 
-                            '_', '_', 'Significance \nthreshold \n(corrected)'], 
-                   loc=(0.84, 0.2), fontsize=13)
-        ax = plt.subplot(2, 6, 12)
-        ax.axis('off')
+        if index == 'CH':
+            fig.legend( labels=['Significance threshold \n(uncorrected)',
+                                '_', 'Observed data', '_', 'Shuffled data', 
+                                '_', 
+                                '_', '_', '_', '_', 'Significance threshold \n(corrected)'], 
+                       loc=(0.72, 0.72), fontsize=LEGEND_SIZE) #loc=(0.84, 0.2)
+        
+        #ax = plt.subplot(2, ncols, ncols*2)
+        #ax.axis('off')
 
         fig.tight_layout()
         plt.savefig(f'./vis/{OUTNAME}_{grouping_variable}_{target_variable}_clustering_{index}.png')

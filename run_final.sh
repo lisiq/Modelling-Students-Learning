@@ -19,5 +19,5 @@ papermill -p IRT_DIMS 1 -p DATASET topic -p ITEM_FEATURES False GNN_final.ipynb 
 
 ## full IRT
 papermill -p IRT_DIMS 1 -p DATASET full -p ITEM_FEATURES False GNN_final.ipynb | jupyter-nbconvert --stdin --no-input --to html --output vis/GNN_batch_IRT_full.html > logs/GNN_batch_IRT_full.log 
-
+ln -s results/IRT_full_aux_data_IRT1.pkl results/IRT_scales_full_aux_data_IRT1.pkl
 ./run_plots.sh

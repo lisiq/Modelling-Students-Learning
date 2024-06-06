@@ -20,11 +20,13 @@ softmax = torch.nn.Softmax(dim=1)
 
 @torch.no_grad()
 def compute_clustering_indices(model, data, df_item, device, grouping_variable, 
-                               target_variable, shuffle=False, seed=1, minsamples=10, ncomp=0):
+                               target_variable, shuffle=False, seed=1, minsamples=10, ncomp=0, encoded=True):
     scores = {
                 'DB': {},
                 'SH': {},
-                'CH': {}
+                'CH': {},
+                'N_SAMPLES': {}, # number of total samples
+                'N_LEVELS': {} # number of levels in target variable
     }
     
     unique_variable = df_item[grouping_variable].dropna().unique()
@@ -34,7 +36,7 @@ def compute_clustering_indices(model, data, df_item, device, grouping_variable,
     try:
         pred, z_dict, _ = model(data)
     except:
-        z_dict = model.get_embeddings(data)
+        z_dict = model.get_embeddings(data, encoded=encoded)
         
     embedding = z_dict['item'].detach().cpu().numpy()   
     
@@ -49,7 +51,7 @@ def compute_clustering_indices(model, data, df_item, device, grouping_variable,
         X = embedding[select, :]
         labels = df_item[target_variable].values[select]
         
-        # ensure a minimum of samples
+        # ensure a minimum of samples for each level of the target variable
         tab = df_item[target_variable].loc[select].value_counts()
         ind = tab[tab >= minsamples].index
         w = df_item[target_variable].loc[select].isin(ind).values
@@ -63,15 +65,19 @@ def compute_clustering_indices(model, data, df_item, device, grouping_variable,
             scores['DB'][category] = 1/davies_bouldin_score(X, labels)
             scores['SH'][category] = silhouette_score(X, labels, metric='euclidean')
             scores['CH'][category] = calinski_harabasz_score(X, labels)
+            scores['N_SAMPLES'][category] = X.shape[0]
+            scores['N_LEVELS'][category] = len(np.unique(labels))
         except:
             scores['DB'][category] = np.nan
             scores['SH'][category] = np.nan
             scores['CH'][category] = np.nan
+            scores['N_SAMPLES'][category] = X.shape[0]
+            scores['N_LEVELS'][category] = len(np.unique(labels))
 
     return scores
 
 @torch.no_grad()
-def compute_domain_distances(model, data, df_item, device, shuffle=False, seed=1, nsamples=0, ncomp=0):
+def compute_domain_distances(model, data, df_item, device, shuffle=False, seed=1, nsamples=0, ncomp=0, encoded=True):
     
     df_item = df_item.reset_index()
     
@@ -90,7 +96,7 @@ def compute_domain_distances(model, data, df_item, device, shuffle=False, seed=1
         pred, z_dict, _ = model(data)
         embedding = z_dict['item'].detach().cpu().numpy()
     except:
-        z_dict = model.get_embeddings(data)
+        z_dict = model.get_embeddings(data, encoded=encoded)
         embedding = z_dict['item']
         
     if ncomp > 0:

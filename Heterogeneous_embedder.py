@@ -105,7 +105,7 @@ class EmbedderHeterogeneous(torch.nn.Module):
 
         return pred    
     
-    def get_embeddings(self, data):
+    def get_embeddings(self, data, encoded=True):
         self.eval()
         #pred = self.forward(data) if edge embeddings needed
         
@@ -122,8 +122,12 @@ class EmbedderHeterogeneous(torch.nn.Module):
         x_dict = {
               'student': student_x,
               'item': item_x
-            } 
-
+            }
+        
+        if encoded:
+            # embeddings after applying the encoder
+            x_dict = self.encoder(x_dict, data.edge_index_dict)
+            
         return x_dict
 
 # Train the model function

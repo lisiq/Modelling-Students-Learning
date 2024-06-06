@@ -4,20 +4,24 @@ library(ggplot2)
 library(ggpubr)
 library(png)
 
-setwd(getSrcDirectory(function(){})[1])
+#setwd(getSrcDirectory(function(){})[1])
+
 FIG_DIR = './vis/'
 
 DPI = 1000
 WIDTH = 6.4
 HEIGHT = 4.8 # 1 row
 
-FONT.LABEL = list(size = 12, color = "black", face = "bold", family = NULL)
+FONT.LABEL = list(size = 20, color = "black", face = "bold", family = NULL)
 
 
 read_fig = function(filename){
   print(filename)
   img = readPNG(file.path(FIG_DIR, filename))
-  return(ggplot() + background_image(img))
+  
+  myplot = ggplot() + background_image(img) + theme_void()
+  
+  return(myplot)
 }
 
 read_list = function(fig_list){
@@ -56,11 +60,22 @@ if (T) {
     '_' = 'SAGE_scales_full_items_PCA.png',
     'A' = 'SAGE_scales_full_dim_items/type_reg-x-None-var_IRT1_difficulty.png',
     'B' = 'SAGE_scales_full_dim_items/type_reg-y-None-var_IRT1_difficulty.png',
-    'C' = 'SAGE_scales_full_dim_items/type_reg-y-None-var_IRT1_difficulty.png',
-    'D' = 'SAGE_scales_full_dim_items/type_reg-x-None-var_IRT1_discrimination_transf.png', 
-    'E' = 'SAGE_scales_full_dim_items/type_reg-y-None-var_IRT1_discrimination_transf.png', 
-    'F' = 'SAGE_scales_full_dim_items/type_reg-z-None-var_IRT1_discrimination_transf.png'
+    'C' = 'SAGE_scales_full_dim_items/type_reg-z-None-var_IRT1_difficulty.png',
+    'D' = 'SAGE_scales_full_dim_items/type_reg-u-None-var_IRT1_difficulty.png',
+    'E' = 'SAGE_scales_full_dim_items/type_reg-v-None-var_IRT1_difficulty.png',
+    'F' = 'SAGE_scales_full_dim_items/type_reg-x-None-var_IRT1_discrimination_transf.png', 
+    'G' = 'SAGE_scales_full_dim_items/type_reg-y-None-var_IRT1_discrimination_transf.png', 
+    'H' = 'SAGE_scales_full_dim_items/type_reg-z-None-var_IRT1_discrimination_transf.png',
+    'I' = 'SAGE_scales_full_dim_items/type_reg-u-None-var_IRT1_discrimination_transf.png', 
+    'J' = 'SAGE_scales_full_dim_items/type_reg-v-None-var_IRT1_discrimination_transf.png'
   )
+  #    'G' = 'SAGE_scales_full_dim_items_notenc/type_reg-x-None-var_IRT1_difficulty.png',
+  #'H' = 'SAGE_scales_full_dim_items_notenc/type_reg-y-None-var_IRT1_difficulty.png',
+  #'I' = 'SAGE_scales_full_dim_items_notenc/type_reg-z-None-var_IRT1_difficulty.png',
+  #'J' = 'SAGE_scales_full_dim_items_notenc/type_reg-x-None-var_IRT1_discrimination_transf.png', 
+  #'K' = 'SAGE_scales_full_dim_items_notenc/type_reg-y-None-var_IRT1_discrimination_transf.png', 
+  #'L' = 'SAGE_scales_full_dim_items_notenc/type_reg-z-None-var_IRT1_discrimination_transf.png'
+  
 
 
   distances_fig_list = list(
@@ -82,17 +97,18 @@ if (T) {
   )
   
   # show the effect of topics
-  cluster_supp_fig_list1 = list(
-    'A' = 'SAGE_scales_full_scalexdifficulty_topic_clustering_CH.png',
-    'B' = 'SAGE_scales_full_scalexdifficulty_topic_clustering_DB.png'
-  )
-  
-  # show that the similarities are not due to being in the same session
   cluster_supp_fig_list2 = list(
-    'A' = 'SAGE_scales_matrix_scalexdifficulty_matrix_clustering_CH.png',
-    'B' = 'SAGE_scales_matrix_scalexdifficulty_matrix_clustering_DB.png',
+    'A' = 'SAGE_scales_full_scalexdifficulty_topic_clustering_CH.png',
+    'B' = 'SAGE_scales_full_scalexdifficulty_topic_clustering_DB.png',
     'C' = 'SAGE_scales_topic_scalexdifficulty_topic_clustering_CH.png',
     'D' = 'SAGE_scales_topic_scalexdifficulty_topic_clustering_DB.png'
+  )
+  
+  
+  # show that the similarities are not due to being in the same session
+  cluster_supp_fig_list1 = list(
+    'A' = 'SAGE_scales_matrix_scalexdifficulty_matrix_clustering_CH.png',
+    'B' = 'SAGE_scales_matrix_scalexdifficulty_matrix_clustering_DB.png'
   )
   
   student_fig_list = list(
@@ -127,10 +143,10 @@ if (T) {
   
   
   save_fig("Fig_Item_PCA.png", item_fig_list[1], nrow=1, ncol=1, wlabel=F)
-  save_fig("Fig_Items.png", item_fig_list[2:7], nrow=2, ncol=3)
+  save_fig("Fig_Items.png", item_fig_list[2:11], nrow=2, ncol=5)
   save_fig("Fig_Distance.png", distances_fig_list, nrow=2, ncol=3)
-  save_fig("Fig_Cluster.png", cluster_fig_list, nrow=3, ncol=2)
-  save_fig("Fig_ClusterSupp1.png", cluster_supp_fig_list1, nrow=2, ncol=2)
+  save_fig("Fig_Cluster.png", cluster_fig_list, nrow=2, ncol=2)
+  save_fig("Fig_ClusterSupp1.png", cluster_supp_fig_list1, nrow=1, ncol=2)
   save_fig("Fig_ClusterSupp2.png", cluster_supp_fig_list2, nrow=2, ncol=1)
   save_fig("Fig_Students.png", student_fig_list, nrow=2, ncol=3)
   #save_fig("Fig_Edges.png", edge_fig_list, nrow=2, ncol=2)
