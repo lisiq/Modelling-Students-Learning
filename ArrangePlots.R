@@ -4,7 +4,7 @@ library(ggplot2)
 library(ggpubr)
 library(png)
 
-#setwd(getSrcDirectory(function(){})[1])
+setwd(getSrcDirectory(function(){})[1])
 
 FIG_DIR = './vis/'
 

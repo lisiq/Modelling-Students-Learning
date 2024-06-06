@@ -4,7 +4,7 @@ from tqdm import tqdm
 import numpy as np
 import torch
 from torch_geometric.loader import NeighborLoader
-from torch_geometric.utils import subgraph
+#from torch_geometric.utils import subgraph
 from utils import *
 import json
 import os
