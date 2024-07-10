@@ -55,3 +55,4 @@ class Classifier_heterogeneous(torch.nn.Module):
         # x = F.dropout(x, training=self.training, p=0.2)
         x = self.linear_2(x)
         return x 
+        

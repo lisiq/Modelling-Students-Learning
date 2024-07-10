@@ -135,14 +135,13 @@ def perform_cross_validation(data, parameters, save_embeddings=False, save_subgr
         # all the other folds will use only the model defined in the first fold
         # we removed this if statement as we were not sure where you need this
         # if model is None:
-            
+
+        student_inchannel = data['student'].x.size(1) if hasattr(data['student'], 'x') else None
+        item_inchannel = data['item'].x.size(1) if hasattr(data['item'], 'x') else None
+
         if parameters['model_type'] == 'GNN':
             test_loop = test_embedder_heterogeneous
             train_loop = train_embedder_heterogeneous
-            
-            student_inchannel = data['student'].x.size(1) if hasattr(data['student'], 'x') else None
-            item_inchannel = data['item'].x.size(1) if hasattr(data['item'], 'x') else None
-            
             
             edge_dim = data['student', 'responds', 'item'].edge_attr.shape[1]
             model = EmbedderHeterogeneous( 
@@ -162,7 +161,10 @@ def perform_cross_validation(data, parameters, save_embeddings=False, save_subgr
             
             model = MIRT_2PL(parameters['hidden_dims'], edge_dim, data, 
                                 lambda1 = lambda1,
-                                lambda2 = lambda2).to(device)
+                                lambda2 = lambda2,
+                                student_inchannel = student_inchannel,
+                                item_inchannel = item_inchannel
+                            ).to(device)
             test_loop = test_IRT
             train_loop = train_IRT
                 

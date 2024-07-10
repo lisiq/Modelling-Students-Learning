@@ -4,11 +4,15 @@ import torch.nn.functional as F
 from utils import calculate_metrics
     
 class MIRT_2PL(torch.nn.Module):
-    def __init__(self, ndims, edge_dim, data, degree=2, lambda1=0, lambda2=0):
+    def __init__(self, ndims, edge_dim, data, degree=1, lambda1=0, lambda2=0, student_inchannel=None, item_inchannel=None):
         super().__init__()
         
         self.degree = degree # allow for non-linear effects   
-        self.W = Linear(edge_dim*self.degree, 1)
+        self.W = Linear(edge_dim*self.degree, ndims, bias=False)
+
+        self.student_lin = torch.nn.Linear(student_inchannel, ndims, bias=False) if student_inchannel is not None else None
+        self.item_lin = torch.nn.Linear(item_inchannel, ndims, bias=False) if item_inchannel is not None else None
+
         self.lambda1 = lambda1
         self.lambda2 = lambda2
             
@@ -40,8 +44,19 @@ class MIRT_2PL(torch.nn.Module):
         return reg
             
     def forward(self, data):
-        x_student = self.student_emb(data['student'].node_id)
-        x_item = self.item_emb(data['item'].node_id)
+        
+        if self.student_lin is not None:
+            x_student = self.student_lin(data['student'].x) +  self.student_emb(data['student'].node_id)
+        else:
+            x_studentx = self.student_emb(data['student'].node_id)
+
+        if self.item_lin is not None:
+            x_item = self.item_lin(data['item'].x) + self.item_emb(data['item'].node_id)
+        else:
+            x_item = self.item_emb(data['item'].node_id)
+
+        #x_student = self.student_emb(data['student'].node_id)
+        #x_item = self.item_emb(data['item'].node_id)
         x_offset = self.offset_emb(data['item'].node_id)
                 
         row, col = data['student', 'responds', 'item'].edge_index
@@ -58,8 +73,11 @@ class MIRT_2PL(torch.nn.Module):
         if self.degree > 1:
             for i in range(1, self.degree):
                 edge_feat = torch.cat([edge_feat, edge_feat0**(i+1)], dim=-1)
-            
+
         z_ability = z_student + self.W(edge_feat)
+        #print(z_student)
+        #print(z_ability)
+        #print(z_ability- z_student)
         
         self.x_dict = {
               'student': x_student,

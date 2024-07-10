@@ -35,8 +35,8 @@ class EmbedderHeterogeneous(torch.nn.Module):
               })
         
         self.edge_channel = edge_channel
-        self.student_lin = torch.nn.Linear(student_inchannel, hidden_channels[0]) if student_inchannel is not None else None
-        self.item_lin = torch.nn.Linear(item_inchannel, hidden_channels[0]) if item_inchannel is not None else None
+        self.student_lin = torch.nn.Linear(student_inchannel, hidden_channels[0], bias=False) if student_inchannel is not None else None
+        self.item_lin = torch.nn.Linear(item_inchannel, hidden_channels[0], bias=False) if item_inchannel is not None else None
         # Since the dataset does not come with rich features, we also learn two
         # embedding matrices for student and items:
         self.student_emb = torch.nn.Embedding(n_students, hidden_channels[0])

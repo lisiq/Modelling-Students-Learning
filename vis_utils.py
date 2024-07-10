@@ -68,6 +68,38 @@ class CPU_Unpickler(pickle.Unpickler):
             return lambda b: torch.load(io.BytesIO(b), map_location='cpu')
         else: return super().find_class(module, name)
 
+
+import pandas as pd
+import numpy as np
+from sklearn.decomposition import PCA
+import matplotlib.pyplot as plt
+
+def parallel_analysis(shapeMatrix, nperms=100):
+    shapeMatrix.dropna(axis=1, inplace=True)
+    normalized_shapeMatrix=(shapeMatrix-shapeMatrix.mean())/shapeMatrix.std()
+    
+    pca = PCA(shapeMatrix.shape[0]-1)
+    pca.fit(normalized_shapeMatrix)
+    transformedShapeMatrix = pca.transform(normalized_shapeMatrix)
+    #np.savetxt("pca_data.csv", pca.explained_variance_, delimiter=",")
+
+    print('Doing parallel analysis')
+    random_eigenvalues = np.zeros(shapeMatrix.shape[0]-1)
+    for i in range(nperms):
+        print(i)
+        random_shapeMatrix = pd.DataFrame(np.random.normal(0, 1, [shapeMatrix.shape[0], shapeMatrix.shape[1]]))
+        pca_random = PCA(shapeMatrix.shape[0]-1)
+        pca_random.fit(random_shapeMatrix)
+        transformedRandomShapeMatrix = pca_random.transform(random_shapeMatrix)
+        random_eigenvalues = random_eigenvalues+pca_random.explained_variance_ratio_
+    random_eigenvalues = random_eigenvalues / 100
+        
+    plt.plot(pca.explained_variance_ratio_, '--bo', label='pca-data')
+    plt.plot(random_eigenvalues, '--rx', label='pca-random')
+    plt.legend()
+    plt.title('parallel analysis plot')
+    plt.show()
+
 class Results:
     def __init__(self):
         self.stats_dict = {}
@@ -241,6 +273,8 @@ def visualize_items(model, data, device, df_item, OUTNAME, dims=('x', 'y'), equa
         z_dict = model.get_embeddings(data, encoded=encoded)        
     embedding = z_dict['item'].detach().cpu().numpy()
 
+    parallel_analysis(embedding)
+    
     dimred.fit(embedding)
     low_dim = dimred.transform(embedding)
 
