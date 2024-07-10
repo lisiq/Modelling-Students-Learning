@@ -74,21 +74,17 @@ import numpy as np
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
 
-def parallel_analysis(shapeMatrix, nperms=100):
-    shapeMatrix.dropna(axis=1, inplace=True)
-    normalized_shapeMatrix=(shapeMatrix-shapeMatrix.mean())/shapeMatrix.std()
-    
-    pca = PCA(shapeMatrix.shape[0]-1)
+def parallel_analysis(shapeMatrix, nperms=1000):
+    normalized_shapeMatrix=(shapeMatrix-shapeMatrix.mean(axis=0))/shapeMatrix.std(axis=0)
+    pca = PCA(shapeMatrix.shape[1]-1)
     pca.fit(normalized_shapeMatrix)
     transformedShapeMatrix = pca.transform(normalized_shapeMatrix)
     #np.savetxt("pca_data.csv", pca.explained_variance_, delimiter=",")
 
-    print('Doing parallel analysis')
-    random_eigenvalues = np.zeros(shapeMatrix.shape[0]-1)
+    random_eigenvalues = np.zeros(shapeMatrix.shape[1]-1)
     for i in range(nperms):
-        print(i)
         random_shapeMatrix = pd.DataFrame(np.random.normal(0, 1, [shapeMatrix.shape[0], shapeMatrix.shape[1]]))
-        pca_random = PCA(shapeMatrix.shape[0]-1)
+        pca_random = PCA(shapeMatrix.shape[1]-1)
         pca_random.fit(random_shapeMatrix)
         transformedRandomShapeMatrix = pca_random.transform(random_shapeMatrix)
         random_eigenvalues = random_eigenvalues+pca_random.explained_variance_ratio_
@@ -97,7 +93,7 @@ def parallel_analysis(shapeMatrix, nperms=100):
     plt.plot(pca.explained_variance_ratio_, '--bo', label='pca-data')
     plt.plot(random_eigenvalues, '--rx', label='pca-random')
     plt.legend()
-    plt.title('parallel analysis plot')
+    plt.title('Parallel analysis plot')
     plt.show()
 
 class Results:
