@@ -269,6 +269,7 @@ def visualize_items(model, data, device, df_item, OUTNAME, dims=('x', 'y'), equa
         z_dict = model.get_embeddings(data, encoded=encoded)        
     embedding = z_dict['item'].detach().cpu().numpy()
 
+    fig = plt.figure()
     parallel_analysis(embedding)
     
     dimred.fit(embedding)

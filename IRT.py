@@ -48,7 +48,7 @@ class MIRT_2PL(torch.nn.Module):
         if self.student_lin is not None:
             x_student = self.student_lin(data['student'].x) +  self.student_emb(data['student'].node_id)
         else:
-            x_studentx = self.student_emb(data['student'].node_id)
+            x_student = self.student_emb(data['student'].node_id)
 
         if self.item_lin is not None:
             x_item = self.item_lin(data['item'].x) + self.item_emb(data['item'].node_id)
