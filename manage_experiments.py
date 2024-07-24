@@ -150,6 +150,7 @@ def perform_cross_validation(data, parameters, save_embeddings=False, save_subgr
                 student_inchannel = student_inchannel,
                 item_inchannel = item_inchannel,
                 hidden_channels = parameters['hidden_dims'],
+                decoder_channel = parameters['decoder_dim'],
                 edge_channel = edge_dim,
                 metadata = data.metadata()
                 ).to(device)

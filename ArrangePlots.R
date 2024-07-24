@@ -69,6 +69,20 @@ if (T) {
     'I' = 'SAGE_scales_full_dim_items/type_reg-u-None-var_IRT1_discrimination_transf.png', 
     'J' = 'SAGE_scales_full_dim_items/type_reg-v-None-var_IRT1_discrimination_transf.png'
   )
+  
+  item_notenc_fig_list = list(
+    'A' = 'SAGE_scales_full_dim_items_notenc/type_reg-x-None-var_IRT1_difficulty.png',
+    'B' = 'SAGE_scales_full_dim_items_notenc/type_reg-y-None-var_IRT1_difficulty.png',
+    'C' = 'SAGE_scales_full_dim_items_notenc/type_reg-z-None-var_IRT1_difficulty.png',
+    'D' = 'SAGE_scales_full_dim_items_notenc/type_reg-u-None-var_IRT1_difficulty.png',
+    'E' = 'SAGE_scales_full_dim_items_notenc/type_reg-v-None-var_IRT1_difficulty.png',
+    'F' = 'SAGE_scales_full_dim_items_notenc/type_reg-x-None-var_IRT1_discrimination_transf.png', 
+    'G' = 'SAGE_scales_full_dim_items_notenc/type_reg-y-None-var_IRT1_discrimination_transf.png', 
+    'H' = 'SAGE_scales_full_dim_items_notenc/type_reg-z-None-var_IRT1_discrimination_transf.png',
+    'I' = 'SAGE_scales_full_dim_items_notenc/type_reg-u-None-var_IRT1_discrimination_transf.png', 
+    'J' = 'SAGE_scales_full_dim_items_notenc/type_reg-v-None-var_IRT1_discrimination_transf.png'
+  )
+  
   #    'G' = 'SAGE_scales_full_dim_items_notenc/type_reg-x-None-var_IRT1_difficulty.png',
   #'H' = 'SAGE_scales_full_dim_items_notenc/type_reg-y-None-var_IRT1_difficulty.png',
   #'I' = 'SAGE_scales_full_dim_items_notenc/type_reg-z-None-var_IRT1_difficulty.png',
@@ -141,6 +155,7 @@ if (T) {
   #   height = HEIGHT*nrow,
   #   units = "in")
   
+  save_fig("Fig_Items_notenc.png", item_notenc_fig_list, nrow=2, ncol=5)
   
   save_fig("Fig_Item_PCA.png", item_fig_list[1], nrow=1, ncol=1, wlabel=F)
   save_fig("Fig_Items.png", item_fig_list[2:11], nrow=2, ncol=5)

@@ -17,8 +17,11 @@ class EmbedderHeterogeneous(torch.nn.Module):
             student_inchannel,
             item_inchannel,
             hidden_channels,
+            decoder_channel,
             edge_channel,
             metadata, # data.metadata()
+            dropout=0,
+            batch_norm=False,
             lambda1=0, 
             lambda2=0
             # heads
@@ -31,29 +34,34 @@ class EmbedderHeterogeneous(torch.nn.Module):
               'student_inchannel': student_inchannel,
               'item_inchannel': item_inchannel,
               'hidden_channels': hidden_channels,
-              'edge_channel': edge_channel
+              'decoder_channel': decoder_channel,               
+              'edge_channel': edge_channel,
+              'dropout': dropout,
+              'batch_norm': batch_norm
               })
         
         self.edge_channel = edge_channel
+        self.decoder_channel = decoder_channel
         self.student_lin = torch.nn.Linear(student_inchannel, hidden_channels[0], bias=False) if student_inchannel is not None else None
         self.item_lin = torch.nn.Linear(item_inchannel, hidden_channels[0], bias=False) if item_inchannel is not None else None
         # Since the dataset does not come with rich features, we also learn two
         # embedding matrices for student and items:
         self.student_emb = torch.nn.Embedding(n_students, hidden_channels[0])
         self.item_emb = torch.nn.Embedding(n_items, hidden_channels[0])
+        self.batch_norm = batch_norm
+        self.dropout = dropout
         self.lambda1 = lambda1
-        self.lambda2 = lambda2
+        self.lambda2 = lambda2        
         
         init.normal_(self.student_emb.weight, 0, 1)
         init.normal_(self.item_emb.weight, 0, 1)
         
-        self.encoder = GNNEncoder(hidden_channels)
+        self.encoder = GNNEncoder(hidden_channels, batch_norm, dropout)
         self.encoder = to_hetero(self.encoder, metadata , aggr='mean')
         if edge_channel == None:
-            self.classifier = Classifier_heterogeneous(hidden_channels[-1], 0) 
+            self.classifier = Classifier_heterogeneous(hidden_channels[-1], 0, decoder_channel) 
         else:
-            # self.classifier = Classifier_heterogeneous(2 * hidden_channels[-1] + edge_channel)
-            self.classifier = Classifier_heterogeneous(hidden_channels[-1], edge_channel) 
+            self.classifier = Classifier_heterogeneous(hidden_channels[-1], edge_channel, decoder_channel) 
 
     def get_penalty(self):
         """

@@ -32,12 +32,10 @@ class MIRT_2PL(torch.nn.Module):
         """
         Regularization penalty.
         """
-        #x_student = self.student_emb(data['student'].node_id)
-        #x_item = self.item_emb(data['item'].node_id)
-        
         reg = 0
         if self.lambda1 > 0:
-            reg += torch.sum(self.z_student.pow(2.0))/2
+            #reg += torch.sum(self.z_student.pow(2.0))/2
+            reg += torch.sum(self.z_ability.pow(2.0))/2
         if self.lambda2 > 0:
             reg += torch.sum(self.softplus(self.z_item).pow(2.0))/2
 
@@ -91,6 +89,7 @@ class MIRT_2PL(torch.nn.Module):
 
         self.z_student = z_student
         self.z_item = z_item
+        self.z_ability = z_ability
         
         return pred #, z_dict, z_edge
     

@@ -76,6 +76,8 @@ import matplotlib.pyplot as plt
 
 def parallel_analysis(shapeMatrix, nperms=1000):
     normalized_shapeMatrix=(shapeMatrix-shapeMatrix.mean(axis=0))/shapeMatrix.std(axis=0)
+    print(shapeMatrix.mean(axis=0))
+    print(shapeMatrix.std(axis=0))
     pca = PCA(shapeMatrix.shape[1]-1)
     pca.fit(normalized_shapeMatrix)
     transformedShapeMatrix = pca.transform(normalized_shapeMatrix)
@@ -88,10 +90,11 @@ def parallel_analysis(shapeMatrix, nperms=1000):
         pca_random.fit(random_shapeMatrix)
         transformedRandomShapeMatrix = pca_random.transform(random_shapeMatrix)
         random_eigenvalues = random_eigenvalues+pca_random.explained_variance_ratio_
-    random_eigenvalues = random_eigenvalues / 100
-        
-    plt.plot(pca.explained_variance_ratio_, '--bo', label='pca-data')
-    plt.plot(random_eigenvalues, '--rx', label='pca-random')
+    random_eigenvalues = random_eigenvalues / nperms
+    
+    PC_values = np.arange(pca.n_components_) + 1
+    plt.plot(PC_values, pca.explained_variance_ratio_, '--bo', label='pca-data')
+    plt.plot(PC_values, random_eigenvalues, '--rx', label='pca-random')
     plt.legend()
     plt.title('Parallel analysis plot')
     plt.show()
