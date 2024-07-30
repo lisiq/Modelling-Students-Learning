@@ -152,7 +152,10 @@ def perform_cross_validation(data, parameters, save_embeddings=False, save_subgr
                 hidden_channels = parameters['hidden_dims'],
                 decoder_channel = parameters['decoder_dim'],
                 edge_channel = edge_dim,
-                metadata = data.metadata()
+                metadata = data.metadata(),
+                dropout = parameters['dropout'],
+                batch_norm = parameters['batch_norm'],
+                irt_output = parameters['irt_output']
                 ).to(device)
                 
         elif parameters['model_type'] == 'IRT':

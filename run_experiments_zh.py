@@ -28,14 +28,16 @@ parameters = {
     }
 
 
-df_names = ['mindsteps_set_matrix'] # ['mindsteps_set_full']
-hidden_dims_GNN = [[16, 8], [8, 8], [8, 4], [4, 4]]
-decoder_dims_GNN = [4, 8, 16, 32]
+df_names = ['mindsteps_set_matrix'] # ['mindsteps_set_matrix']
+#hidden_dims_GNN = [[16, 8], [8, 8], [8, 4], [4, 4]]
+hidden_dims_GNN = [[2, 2], [4, 2], [4, 4], [8, 4], [8, 8]]
+decoder_dims_GNN = [0, 4, 8, 16]
 hidden_dims_IRT = [1, 3, 5]
-lambda1s = [0, 0.00001, 0.0001]
-lambda2s = [0, 0.00001, 0.0001]
+lambda1s = [0, 1e-6]
+lambda2s = [0, 1e-6]
 weight_decays = [0]
 batch_norms = [False, True]
+irt_outputs = [False, True]
 dropouts = [0, 0.2, 0.4]
 
 
@@ -46,7 +48,7 @@ fold = "results_tuning/"
 if __name__ == '__main__':
 
     # GNN
-    for df_name, hidden_dim, decoder_dim, batch_norm, dropout, weight_decay in itertools.product(df_names, hidden_dims_GNN, decoder_dims_GNN, batch_norms, dropouts, weight_decays):
+    for df_name, hidden_dim, decoder_dim, batch_norm, dropout, irt_output, weight_decay in itertools.product(df_names, hidden_dims_GNN, decoder_dims_GNN, batch_norms, dropouts, irt_outputs, weight_decays):
   
         parameters['model_type'] = 'GNN'
         parameters['df_name'] = df_name
@@ -55,6 +57,7 @@ if __name__ == '__main__':
         parameters['weight_decay'] = weight_decay
         parameters['batch_norm'] = batch_norm
         parameters['dropout'] = dropout
+        parameters['irt_output'] = irt_output
             
         create_tasks(
                 parameters,
@@ -62,16 +65,20 @@ if __name__ == '__main__':
                 folder = fold
         )
         
+    parameters.pop('dropout')
+    parameters.pop('batch_norm')
+    parameters.pop('decoder_dim')
+    parameters.pop('irt_output')
+
     # IRT
     for df_name, hidden_dim, lambda1, lambda2 in itertools.product(df_names, hidden_dims_IRT, lambda1s, lambda2s):
-
         parameters['model_type'] = 'IRT'
         parameters['df_name'] = df_name
         parameters['hidden_dims'] = hidden_dim 
         parameters['lambda1'] = lambda1 
         parameters['lambda2'] = lambda2 
         parameters['weight_decay'] = 0
-            
+        
         create_tasks(
                 parameters,
                 repeat_experiment = repeat_experiment,

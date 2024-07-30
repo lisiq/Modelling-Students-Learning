@@ -5,7 +5,7 @@ from torch.nn import Linear, init
 from torch_geometric.nn import  to_hetero
 from tqdm import tqdm
 
-from GNN import GNNEncoder, Classifier_heterogeneous
+from GNN import GNNEncoder, Classifier_heterogeneous, Classifier_heterogeneous_irt
 from utils import calculate_metrics
     
 
@@ -22,6 +22,7 @@ class EmbedderHeterogeneous(torch.nn.Module):
             metadata, # data.metadata()
             dropout=0,
             batch_norm=False,
+            irt_output=False,
             lambda1=0, 
             lambda2=0
             # heads
@@ -37,7 +38,8 @@ class EmbedderHeterogeneous(torch.nn.Module):
               'decoder_channel': decoder_channel,               
               'edge_channel': edge_channel,
               'dropout': dropout,
-              'batch_norm': batch_norm
+              'batch_norm': batch_norm,
+              'irt_output': irt_output
               })
         
         self.edge_channel = edge_channel
@@ -58,10 +60,16 @@ class EmbedderHeterogeneous(torch.nn.Module):
         
         self.encoder = GNNEncoder(hidden_channels, batch_norm, dropout)
         self.encoder = to_hetero(self.encoder, metadata , aggr='mean')
-        if edge_channel == None:
-            self.classifier = Classifier_heterogeneous(hidden_channels[-1], 0, decoder_channel) 
+
+        if irt_output: 
+            classifier = Classifier_heterogeneous
         else:
-            self.classifier = Classifier_heterogeneous(hidden_channels[-1], edge_channel, decoder_channel) 
+            classifier = Classifier_heterogeneous_irt
+        
+        if edge_channel == None:
+            edge_channel = 0
+            
+        self.classifier = classifier(hidden_channels[-1], edge_channel, decoder_channel) 
 
     def get_penalty(self):
         """

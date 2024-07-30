@@ -94,15 +94,25 @@ def create_data_object_heterogeneous(df, return_aux_data=False, item_features=Tr
         return data
 
 
+def get_roc_auc_score(y_true, y_predsoft):
+    
+    from sklearn.metrics import roc_auc_score
+    try:
+        r = roc_auc_score(y_true, y_predsoft)
+    except:
+        r = np.nan   
+        
+    return r
+
 
 def calculate_metrics(y_true, pred):
-    from sklearn.metrics import confusion_matrix, f1_score, accuracy_score, recall_score, precision_score, balanced_accuracy_score, roc_auc_score
+    from sklearn.metrics import confusion_matrix, f1_score, accuracy_score, recall_score, precision_score, balanced_accuracy_score
     from sklearn.metrics.cluster import adjusted_mutual_info_score
     
     y_predsoft = pred.squeeze().numpy()#softmax(pred).numpy()[:, 1]
     y_pred = pred.squeeze().round().long().numpy()#.argmax(dim=1, keepdim=True).view(-1).numpy()
     return {
-            'AUC':roc_auc_score(y_true, y_predsoft), #
+            'AUC':get_roc_auc_score(y_true, y_predsoft), #
             'Confusion':confusion_matrix(y_true, y_pred).tolist(),
             # 'F1-score-weighted':f1_score(y_true, y_pred, average='weighted'), #
             # 'F1-score-macro':f1_score(y_true, y_pred, average='macro'),
