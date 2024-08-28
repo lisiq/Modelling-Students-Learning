@@ -28,17 +28,17 @@ parameters = {
     }
 
 
-df_names = ['mindsteps_set_matrix'] # ['mindsteps_set_matrix']
+df_names = ['mindsteps_set_matrix'] # ['mindsteps_set_matrix', 'mindsteps_set_full']
 #hidden_dims_GNN = [[16, 8], [8, 8], [8, 4], [4, 4]]
-hidden_dims_GNN = [[2, 2], [4, 2], [4, 4], [8, 4], [8, 8]]
-decoder_dims_GNN = [0, 4, 8, 16]
+hidden_dims_GNN = [[4, 4], [6, 6], [8, 8]] #[[2, 2], [4, 2], [4, 4], [8, 4], [8, 8]]
+decoder_dims_GNN = [4, 6, 8]
 hidden_dims_IRT = [1, 3, 5]
 lambda1s = [0, 1e-6]
 lambda2s = [0, 1e-6]
 weight_decays = [0]
-batch_norms = [False, True]
-irt_outputs = [False, True]
-dropouts = [0, 0.2, 0.4]
+batch_norms = [False] #, True]
+irt_outputs = [False]
+dropouts = [0] #, 0.2, 0.4]
 
 
 repeat_experiment = 1

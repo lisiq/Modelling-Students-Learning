@@ -24,7 +24,8 @@ class EmbedderHeterogeneous(torch.nn.Module):
             batch_norm=False,
             irt_output=False,
             lambda1=0, 
-            lambda2=0
+            lambda2=0,
+            use_offset=False,
             # heads
             ):
         super().__init__()
@@ -39,7 +40,8 @@ class EmbedderHeterogeneous(torch.nn.Module):
               'edge_channel': edge_channel,
               'dropout': dropout,
               'batch_norm': batch_norm,
-              'irt_output': irt_output
+              'irt_output': irt_output,
+              'use_offset': use_offset
               })
         
         self.edge_channel = edge_channel
@@ -50,6 +52,11 @@ class EmbedderHeterogeneous(torch.nn.Module):
         # embedding matrices for student and items:
         self.student_emb = torch.nn.Embedding(n_students, hidden_channels[0])
         self.item_emb = torch.nn.Embedding(n_items, hidden_channels[0])
+        if use_offset:
+            self.offset_emb = torch.nn.Embedding(n_items, 1) ###
+            init.normal_(self.offset_emb.weight, 0, 1) ###
+        else:
+            self.offset_emb = None
         self.batch_norm = batch_norm
         self.dropout = dropout
         self.lambda1 = lambda1
@@ -58,10 +65,11 @@ class EmbedderHeterogeneous(torch.nn.Module):
         init.normal_(self.student_emb.weight, 0, 1)
         init.normal_(self.item_emb.weight, 0, 1)
         
+        
         self.encoder = GNNEncoder(hidden_channels, batch_norm, dropout)
         self.encoder = to_hetero(self.encoder, metadata , aggr='mean')
 
-        if irt_output: 
+        if not irt_output: 
             classifier = Classifier_heterogeneous
         else:
             classifier = Classifier_heterogeneous_irt
@@ -69,7 +77,8 @@ class EmbedderHeterogeneous(torch.nn.Module):
         if edge_channel == None:
             edge_channel = 0
             
-        self.classifier = classifier(hidden_channels[-1], edge_channel, decoder_channel) 
+        ##self.classifier = classifier(hidden_channels[-1], edge_channel, decoder_channel) 
+        self.classifier = classifier(hidden_channels[-1], edge_channel, decoder_channel)
 
     def get_penalty(self):
         """
@@ -116,7 +125,8 @@ class EmbedderHeterogeneous(torch.nn.Module):
             x_dict['student'],
             x_dict['item'],
             data['student', 'responds', 'item'].edge_index,
-            data['student', 'responds', 'item'].edge_attr
+            data['student', 'responds', 'item'].edge_attr,
+            self.offset_emb(data['item'].node_id) if self.offset_emb is not None else None
             )      
 
         return pred    

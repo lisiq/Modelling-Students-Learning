@@ -1,4 +1,4 @@
-from Heterogeneous_embedder import EmbedderHeterogeneous, train_embedder_heterogeneous, test_embedder_heterogeneous
+#mode = ''
 from sklearn.model_selection import KFold, train_test_split
 from tqdm import tqdm
 import numpy as np
@@ -11,7 +11,7 @@ import os
 import numpy as np
 import uuid as _uuid
 import glob as _glob
-from IRT import MIRT_2PL, train_IRT, test_IRT
+
 from sklearn.utils.class_weight import compute_class_weight
 import matplotlib.pyplot as plt
 
@@ -21,6 +21,22 @@ import sys
 random.seed(0)
 
 random_state = random.randint(0, 2**32 - 1)
+
+def import_modules(mode=''):
+    print(mode)
+    
+    if mode == '':
+        global MIRT_2PL, train_IRT, test_IRT, EmbedderHeterogeneous, train_embedder_heterogeneous, test_embedder_heterogeneous
+        from IRT import MIRT_2PL, train_IRT, test_IRT
+        from Heterogeneous_embedder import EmbedderHeterogeneous, train_embedder_heterogeneous, test_embedder_heterogeneous
+    if mode == 'RT':
+        global EmbedderHeterogeneous, train_embedder_heterogeneous, test_embedder_heterogeneous
+        from Heterogeneous_embedder_RT import EmbedderHeterogeneous, train_embedder_heterogeneous, test_embedder_heterogeneous
+    if mode == 'VAR':
+        global EmbedderHeterogeneous, train_embedder_heterogeneous, test_embedder_heterogeneous
+        from IRT_Variational import EmbedderHeterogeneous, train_embedder_heterogeneous, test_embedder_heterogeneous
+
+import_modules() # if it is not called
 
 def save_dict(data, filename):
 	"""
@@ -203,6 +219,11 @@ def perform_cross_validation(data, parameters, save_embeddings=False, save_subgr
             val_b = test_loop(model, val_subgraph_data, fold, 'val')
             test_b = test_loop(model, test_subgraph_data, fold, 'test')
 
+            val_acc = val_b['Balanced Accuracy'+f'_{fold}_val']
+            test_acc = test_b['Balanced Accuracy'+f'_{fold}_test']
+            #print(f'Interim\nEpoch: {epoch:03d}, Loss: {loss:.4f}, '
+            #        f'Val: {val_acc:.4f}, Test: {test_acc:.4f}')
+            
             if val_b['Balanced Accuracy'+f'_{fold}_val'] > best_val_acc:
                 early_stopping = 0
 

@@ -10,28 +10,35 @@ softmax = torch.nn.Softmax(dim=1)
 def mymode(x):
     return pd.Series.mode(x, dropna=False)[0]
 
-def load_data_heterogeneous(path):
+def load_data_heterogeneous(path, y_vars=['score']):
     """
         loads the data and performs preprocessing steps
     """
     df = pd.read_csv(path + '.csv', index_col=0)
-       
+    df = df.dropna(subset=y_vars)
+    if 'viewingTime' in y_vars:
+        df = df.loc[df.viewingTime > 0.5]
+        df = df.loc[df.viewingTime < 500]
+        
     df['matdiff'] = df.matrix.apply(lambda x: x.split('.')[4] if type(x) == 'str' else '')
     df['matcode'] = df.matrix.apply(lambda x: '.'.join(x.split('.')[:4]) if type(x) == 'str' else '')
     df['domain'] = df.scale.apply(lambda x: x[0])
     # code to index starting from 0 since they start from 100+
     code_to_index = {k:v for v,k in zip(range(df.code.nunique()), df.code.unique().tolist())}
+    student_to_index = {k:v for v,k in zip(range(df.studentId.nunique()), df.studentId.unique().tolist())}
     
     # do the mapping 
     df.code = df.code.apply(lambda x: code_to_index[x])
+    df.studentId = df.studentId.apply(lambda x: student_to_index[x])
     #df.scale = df.scale.apply(lambda x: scale_to_index[x])    
 
     return df
 
 
-def create_data_object_heterogeneous(df, return_aux_data=False, item_features=True, student_features=True):
+def create_data_object_heterogeneous(df, return_aux_data=False, item_features=True, student_features=True,
+                                    undirected=True, y_vars=['score'], forll=False):
     data = HeteroData()
-
+    
     scales = df.scale
     scales_oh = scales.str.get_dummies('|')
     scale_features = torch.from_numpy(scales_oh.values).to(torch.float)
@@ -43,10 +50,14 @@ def create_data_object_heterogeneous(df, return_aux_data=False, item_features=Tr
     # Add the node features
     # there seems to be students with different mother tongue and gender in different occasions
     df_student = df.groupby('studentId').agg({'age': 'mean', 'grade': 'mean',
-                                              'motherTongue': mymode, 'Gender': mymode}).reset_index()
+                                              'motherTongue': mymode, 'Gender': mymode,
+                                              'viewingTime':'min'}).reset_index()
     
     if student_features:
-        data['student'].x = torch.from_numpy(df_student[['motherTongue',  'Gender']].values).to(torch.float)
+        if 'viewingTime' in y_vars:
+            data['student'].x = torch.from_numpy(df_student[['viewingTime', 'motherTongue',  'Gender']].values).to(torch.float)
+        else:
+            data['student'].x = torch.from_numpy(df_student[['motherTongue',  'Gender']].values).to(torch.float)
         
     rem_dup = df[['code', 'scale']].drop_duplicates()
     rem_dup_index = rem_dup.index
@@ -69,24 +80,30 @@ def create_data_object_heterogeneous(df, return_aux_data=False, item_features=Tr
 
     # Add the edge indices
     data['student', 'responds', 'item'].edge_index = torch.from_numpy(df[['studentId', 'code']].values.T)
-
+    from torch_geometric.utils import contains_self_loops
+    print(contains_self_loops(data['student', 'responds', 'item'].edge_index)) 
     # Add the edge attributes
     df_edge = df[['age', 'grade', 'ability']]
     #df_edge = df[['age', 'grade']].sample(frac=1).reset_index(drop=True)
 
-    data['student', 'responds', 'item'].edge_attr = torch.from_numpy(df[['age', 'grade']].values).to(torch.float)
+    if forll:
+        data['student', 'responds', 'item'].edge_attr = torch.from_numpy(df[['age', 'grade'] + y_vars].values).to(torch.float)
+    else:
+        data['student', 'responds', 'item'].edge_attr = torch.from_numpy(df[['age', 'grade']].values).to(torch.float)
+        
+        # Add the edge label
+        #data['student', 'responds', 'item'].edge_label = torch.tensor(df['score'].values)
+    data['student', 'responds', 'item'].y = torch.tensor(df[y_vars].values).squeeze()
 
-    # Add the edge label
-    #data['student', 'responds', 'item'].edge_label = torch.tensor(df['score'].values)
-    data['student', 'responds', 'item'].y = torch.tensor(df['score'].values)
-
-    # We use T.ToUndirected() to add the reverse edges from subject to students 
-    # in order to let GNN pass messages in both ways
-    # Add a reverse ('item', 'rev_takes', 'student') relation for message passing:
-    data = T.ToUndirected()(data)
-    del data['item', 'rev_responds', 'student'].edge_attr  
-    #del data['item', 'rev_responds', 'student'].edge_label # Remove 'reverse' label.
-    del data['item', 'rev_responds', 'student'].y
+    if undirected:
+        # We use T.ToUndirected() to add the reverse edges from subject to students 
+        # in order to let GNN pass messages in both ways
+        # Add a reverse ('item', 'rev_takes', 'student') relation for message passing:
+        data = T.ToUndirected()(data)
+        del data['item', 'rev_responds', 'student'].edge_attr  
+        #del data['item', 'rev_responds', 'student'].edge_label # Remove 'reverse' label.
+        #if not forll:
+        #    del data['item', 'rev_responds', 'student'].y
 
     if return_aux_data:
         return data, df_student, df_item, df_edge
@@ -108,9 +125,18 @@ def get_roc_auc_score(y_true, y_predsoft):
 def calculate_metrics(y_true, pred):
     from sklearn.metrics import confusion_matrix, f1_score, accuracy_score, recall_score, precision_score, balanced_accuracy_score
     from sklearn.metrics.cluster import adjusted_mutual_info_score
-    
+    #print(y_true.shape)
+    #print(pred.size())
     y_predsoft = pred.squeeze().numpy()#softmax(pred).numpy()[:, 1]
     y_pred = pred.squeeze().round().long().numpy()#.argmax(dim=1, keepdim=True).view(-1).numpy()
+    y_pred_ber = torch.bernoulli(pred).squeeze().long().numpy()#.argmax(dim=1, keepdim=True).view(-1).numpy()
+    y_pred_ber1 = torch.bernoulli(pred).squeeze().long().numpy()#.argmax(dim=1, keepdim=True).view(-1).numpy()
+    y_pred_ber2 = torch.bernoulli(pred).squeeze().long().numpy()#.argmax(dim=1, keepdim=True).view(-1).numpy()
+
+    #print('***********')
+    #print(y_true[:40])
+    #print(y_pred[:40])
+    #print('***********')
     return {
             'AUC':get_roc_auc_score(y_true, y_predsoft), #
             'Confusion':confusion_matrix(y_true, y_pred).tolist(),
@@ -119,6 +145,9 @@ def calculate_metrics(y_true, pred):
             # 'F1-score-micro':f1_score(y_true, y_pred, average='micro'),
             # 'Accuracy':accuracy_score(y_true, y_pred),
             'Balanced Accuracy': balanced_accuracy_score(y_true, y_pred),
+            'Balanced Accuracy Ber': balanced_accuracy_score(y_true, y_pred_ber),
+            'Balanced Accuracy Ber1': balanced_accuracy_score(y_true, y_pred_ber1),
+            'Balanced Accuracy Ber2': balanced_accuracy_score(y_true, y_pred_ber2),
             # 'Precision-weighted':precision_score(y_true, y_pred, average='weighted'), #
             # 'Precision-macro':precision_score(y_true, y_pred, average='macro'),
             # 'Precision-micro':precision_score(y_true, y_pred, average='micro'),
