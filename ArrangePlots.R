@@ -163,7 +163,7 @@ if (T) {
   save_fig("Fig_Cluster.png", cluster_fig_list, nrow=2, ncol=2)
   save_fig("Fig_ClusterSupp1.png", cluster_supp_fig_list1, nrow=1, ncol=2)
   #save_fig("Fig_ClusterSupp2.png", cluster_supp_fig_list2, nrow=2, ncol=1)
-  save_fig("Fig_Students.png", student_fig_list, nrow=2, ncol=3)
+  #save_fig("Fig_Students.png", student_fig_list, nrow=2, ncol=3)
   #save_fig("Fig_Edges.png", edge_fig_list, nrow=2, ncol=2)
   
 }

@@ -10,12 +10,14 @@ softmax = torch.nn.Softmax(dim=1)
 def mymode(x):
     return pd.Series.mode(x, dropna=False)[0]
 
-def load_data_heterogeneous(path, y_vars=['score']):
+def load_data_heterogeneous(path, y_vars=['score'], domains=None):
     """
         loads the data and performs preprocessing steps
     """
     df = pd.read_csv(path + '.csv', index_col=0)
     df = df.dropna(subset=y_vars)
+
+        
     if 'viewingTime' in y_vars:
         df = df.loc[df.viewingTime > 0.5]
         df = df.loc[df.viewingTime < 500]
@@ -23,6 +25,9 @@ def load_data_heterogeneous(path, y_vars=['score']):
     df['matdiff'] = df.matrix.apply(lambda x: x.split('.')[4] if type(x) == 'str' else '')
     df['matcode'] = df.matrix.apply(lambda x: '.'.join(x.split('.')[:4]) if type(x) == 'str' else '')
     df['domain'] = df.scale.apply(lambda x: x[0])
+    if domains is not None:
+        df = df.loc[df.domain.isin(domains)]        
+
     # code to index starting from 0 since they start from 100+
     code_to_index = {k:v for v,k in zip(range(df.code.nunique()), df.code.unique().tolist())}
     student_to_index = {k:v for v,k in zip(range(df.studentId.nunique()), df.studentId.unique().tolist())}
@@ -31,7 +36,7 @@ def load_data_heterogeneous(path, y_vars=['score']):
     df.code = df.code.apply(lambda x: code_to_index[x])
     df.studentId = df.studentId.apply(lambda x: student_to_index[x])
     #df.scale = df.scale.apply(lambda x: scale_to_index[x])    
-
+    df = df.reset_index()
     return df
 
 
@@ -122,16 +127,21 @@ def get_roc_auc_score(y_true, y_predsoft):
     return r
 
 
-def calculate_metrics(y_true, pred):
+def calculate_metrics(y_true, pred, bernoulli=False, NREPS=100):
     from sklearn.metrics import confusion_matrix, f1_score, accuracy_score, recall_score, precision_score, balanced_accuracy_score
     from sklearn.metrics.cluster import adjusted_mutual_info_score
     #print(y_true.shape)
     #print(pred.size())
     y_predsoft = pred.squeeze().numpy()#softmax(pred).numpy()[:, 1]
     y_pred = pred.squeeze().round().long().numpy()#.argmax(dim=1, keepdim=True).view(-1).numpy()
-    y_pred_ber = torch.bernoulli(pred).squeeze().long().numpy()#.argmax(dim=1, keepdim=True).view(-1).numpy()
-    y_pred_ber1 = torch.bernoulli(pred).squeeze().long().numpy()#.argmax(dim=1, keepdim=True).view(-1).numpy()
-    y_pred_ber2 = torch.bernoulli(pred).squeeze().long().numpy()#.argmax(dim=1, keepdim=True).view(-1).numpy()
+    
+    ba = balanced_accuracy_score(y_true, y_pred)
+    pred[pred<0.] = 0.
+    pred[pred>1.] = 1.
+    ba_ber = np.mean([ balanced_accuracy_score(y_true, torch.bernoulli(pred).squeeze().long().numpy()) for x in range(NREPS)])
+    
+    if bernoulli:
+        ba = ba_ber
 
     #print('***********')
     #print(y_true[:40])
@@ -144,10 +154,8 @@ def calculate_metrics(y_true, pred):
             # 'F1-score-macro':f1_score(y_true, y_pred, average='macro'),
             # 'F1-score-micro':f1_score(y_true, y_pred, average='micro'),
             # 'Accuracy':accuracy_score(y_true, y_pred),
-            'Balanced Accuracy': balanced_accuracy_score(y_true, y_pred),
-            'Balanced Accuracy Ber': balanced_accuracy_score(y_true, y_pred_ber),
-            'Balanced Accuracy Ber1': balanced_accuracy_score(y_true, y_pred_ber1),
-            'Balanced Accuracy Ber2': balanced_accuracy_score(y_true, y_pred_ber2),
+            'Balanced Accuracy': ba,
+            'Balanced Accuracy Bernoulli': ba_ber
             # 'Precision-weighted':precision_score(y_true, y_pred, average='weighted'), #
             # 'Precision-macro':precision_score(y_true, y_pred, average='macro'),
             # 'Precision-micro':precision_score(y_true, y_pred, average='micro'),

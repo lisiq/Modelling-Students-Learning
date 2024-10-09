@@ -25,9 +25,10 @@ POINTSIZE = 2
 LINEWIDTH = 0.5
 PERCENTILES = (0.01, 99.99)
 MAX_PCS = 0 #8
-FONTSCALE = 1.6
-LEGEND_SIZE = 16
-
+FONTSCALE = 1.3
+LEGEND_SIZE = 14 #16
+LEGEND_SIZE2 = 12 #16
+MARKERSCALE = 3
 FIGSIZE = (2*6.4, 2*4.8) #width, height
 FIGSIZE2 = (2*6.4, 4*4.8)
 
@@ -41,12 +42,11 @@ DPI = 1000
 AGEDELTA = 0.5
 AGE_THR = 2
 
-
 CONTINUOUS_VARS =  ['age', 'ability', 'frequency', 'previous_sessions', 'years_from_start']
 
 COMP_NAMES = ['x','y','z','u','v']
 # labels
-COMP_LABELS = {comp: f'Component {i}' for i, comp in enumerate(COMP_NAMES)}
+COMP_LABELS = {comp: f'Component {i+1}' for i, comp in enumerate(COMP_NAMES)}
 
 CLUSTER_LABELS = {'CH': 'Calinsky-Harabasz Index', 'DB': 'Inverse of Davies-Bouldin Index'}
 COMPETENCE_LABELS = {'matrix': 'Competences', 'topic': 'Topics'}
@@ -155,7 +155,7 @@ def save_plot(data, var, title, figname, x, y=None, plot_type='sct', equal_axes=
         axes.set_ylabel(COMP_LABELS[y])
         axes.set_xlim(xlim)
         axes.set_xlabel(COMP_LABELS[x])
-        axes.legend(title=title)        
+        axes.legend(title=title, markerscale=MARKERSCALE)        
         axes.set_title(title)
         
     if plot_type == 'kde':
@@ -626,11 +626,17 @@ def plot_clustering(grouping_variable, target_variable, model, data, df_item, de
             ax.legend_.remove()
             ax.label_outer()
         if index == 'CH':
-            fig.legend( labels=['Significance threshold \n(uncorrected)',
-                                '_', 'Observed data', '_', 'Shuffled data', 
+            fig.legend(labels=['Significance \nthreshold \n(uncorrected)',
+                                '_', '_', '_', 'Shuffled data', 
                                 '_', 
-                                '_', '_', '_', '_', 'Significance threshold \n(corrected)'], 
-                       loc=(0.72, 0.72), fontsize=LEGEND_SIZE) #loc=(0.84, 0.2)
+                                '_', '_', 'Observed data', '_', 'Significance \nthreshold \n(corrected)'], 
+                       loc=(0.82, 0.25), fontsize=LEGEND_SIZE2, markerscale=MARKERSCALE) #loc=(0.72, 0.72)
+        ax = plt.subplot(2, ncols, i+2)
+        ax.set_axis_off()
+        #ax.spines['top'].set_visible(False)
+        #ax.spines['bottom'].set_visible(False)
+        #ax.spines['left'].set_visible(False)
+        #ax.spines['right'].set_visible(False)
         
         #ax = plt.subplot(2, ncols, ncols*2)
         #ax.axis('off')

@@ -95,7 +95,29 @@ def perform_experiment(filename):
     
     save_dict(output_dict, filename)    
 
+def perform_experiment_RT(filename):
+    with open(filename, "r") as file:
+        parameters = json.load(file)
 
+    y_vars = ['score', 'viewingTime']
+
+
+    if parameters["df_name"] in ["synthetic.salamoia"]:
+         data = load_data_synthetic(parameters["df_name"])
+    elif "mindsteps" in parameters["df_name"]:
+        df = load_data_heterogeneous("data/" + parameters["df_name"], y_vars=y_vars)
+        data = create_data_object_heterogeneous(df, y_vars=y_vars)
+    else:
+        assert False, f"unknown dataset: {parameters['df_name']}"
+    
+    output_dict = perform_cross_validation(data, parameters)
+        
+    output_dict['done'] = True
+    # print the keys and get the type of all thevalues in the dictionary
+    for key, value in output_dict.items():
+        print(key, type(value))
+    
+    save_dict(output_dict, filename)    
 ####################################################
 
 # function to get the embedings
