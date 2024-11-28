@@ -4,6 +4,8 @@ import torch_geometric.transforms as T
 from torch_geometric.data import Data, HeteroData
 import pandas as pd
 import numpy as np
+from torch_geometric.utils import contains_self_loops
+
 softmax = torch.nn.Softmax(dim=1)
 
 
@@ -85,10 +87,13 @@ def create_data_object_heterogeneous(df, return_aux_data=False, item_features=Tr
 
     # Add the edge indices
     data['student', 'responds', 'item'].edge_index = torch.from_numpy(df[['studentId', 'code']].values.T)
-    from torch_geometric.utils import contains_self_loops
     print(contains_self_loops(data['student', 'responds', 'item'].edge_index)) 
     # Add the edge attributes
-    df_edge = df[['age', 'grade', 'ability']]
+    if 'ability' in df.columns: 
+        df_edge = df[['age', 'grade', 'ability']]
+    else:
+        df_edge = df[['age', 'grade']]
+        
     #df_edge = df[['age', 'grade']].sample(frac=1).reset_index(drop=True)
 
     if forll:

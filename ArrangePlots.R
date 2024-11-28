@@ -8,7 +8,7 @@ setwd(getSrcDirectory(function(){})[1])
 
 FIG_DIR = './vis/'
 
-DPI = 1000
+DPI = 800
 WIDTH = 6.4
 HEIGHT = 4.8 # 1 row
 
@@ -56,18 +56,29 @@ OUT_DIR = file.path(FIG_DIR,  'paper')
 # maybe change by scales
 if (T) {
   
+# 
+#   item_fig_list = list(
+#     '_' = 'SAGE_scales_full_items_PCA.png',
+#     'A' = 'SAGE_scales_full_dim_items/type_reg-x-None-var_IRT1_difficulty.png',
+#     'B' = 'SAGE_scales_full_dim_items/type_reg-y-None-var_IRT1_difficulty.png',
+#     'C' = 'SAGE_scales_full_dim_items/type_reg-z-None-var_IRT1_difficulty.png',
+#     'D' = 'SAGE_scales_full_dim_items/type_reg-u-None-var_IRT1_difficulty.png',
+#     'E' = 'SAGE_scales_full_dim_items/type_reg-v-None-var_IRT1_difficulty.png',
+#     'F' = 'SAGE_scales_full_dim_items/type_reg-x-None-var_IRT1_discrimination_transf.png', 
+#     'G' = 'SAGE_scales_full_dim_items/type_reg-y-None-var_IRT1_discrimination_transf.png', 
+#     'H' = 'SAGE_scales_full_dim_items/type_reg-z-None-var_IRT1_discrimination_transf.png',
+#     'I' = 'SAGE_scales_full_dim_items/type_reg-u-None-var_IRT1_discrimination_transf.png', 
+#     'J' = 'SAGE_scales_full_dim_items/type_reg-v-None-var_IRT1_discrimination_transf.png'
+#   )
+
   item_fig_list = list(
     '_' = 'SAGE_scales_full_items_PCA.png',
     'A' = 'SAGE_scales_full_dim_items/type_reg-x-None-var_IRT1_difficulty.png',
     'B' = 'SAGE_scales_full_dim_items/type_reg-y-None-var_IRT1_difficulty.png',
     'C' = 'SAGE_scales_full_dim_items/type_reg-z-None-var_IRT1_difficulty.png',
-    'D' = 'SAGE_scales_full_dim_items/type_reg-u-None-var_IRT1_difficulty.png',
-    'E' = 'SAGE_scales_full_dim_items/type_reg-v-None-var_IRT1_difficulty.png',
-    'F' = 'SAGE_scales_full_dim_items/type_reg-x-None-var_IRT1_discrimination_transf.png', 
-    'G' = 'SAGE_scales_full_dim_items/type_reg-y-None-var_IRT1_discrimination_transf.png', 
-    'H' = 'SAGE_scales_full_dim_items/type_reg-z-None-var_IRT1_discrimination_transf.png',
-    'I' = 'SAGE_scales_full_dim_items/type_reg-u-None-var_IRT1_discrimination_transf.png', 
-    'J' = 'SAGE_scales_full_dim_items/type_reg-v-None-var_IRT1_discrimination_transf.png'
+    'D' = 'SAGE_scales_full_dim_items/type_reg-x-None-var_IRT1_discrimination_transf.png', 
+    'E' = 'SAGE_scales_full_dim_items/type_reg-y-None-var_IRT1_discrimination_transf.png', 
+    'F' = 'SAGE_scales_full_dim_items/type_reg-z-None-var_IRT1_discrimination_transf.png'
   )
   
   item_notenc_fig_list = list(
@@ -155,13 +166,14 @@ if (T) {
   #   height = HEIGHT*nrow,
   #   units = "in")
   
-  save_fig("Fig_Items_notenc.png", item_notenc_fig_list, nrow=2, ncol=5)
+  save_fig("Fig_Items_notenc.jpg", item_notenc_fig_list, nrow=2, ncol=5)
   
-  save_fig("Fig_Item_PCA.png", item_fig_list[1], nrow=1, ncol=1, wlabel=F)
-  save_fig("Fig_Items.png", item_fig_list[2:11], nrow=2, ncol=5)
-  save_fig("Fig_Distance.png", distances_fig_list, nrow=2, ncol=3)
-  save_fig("Fig_Cluster.png", cluster_fig_list, nrow=2, ncol=2)
-  save_fig("Fig_ClusterSupp1.png", cluster_supp_fig_list1, nrow=1, ncol=2)
+  save_fig("Fig_Item_PCA.jpg", item_fig_list[1], nrow=1, ncol=1, wlabel=F)
+#  save_fig("Fig_Items.pdf", item_fig_list[2:11], nrow=2, ncol=5)
+  save_fig("Fig_Items.jpg", item_fig_list[2:7], nrow=2, ncol=3)
+  save_fig("Fig_Distance.jpg", distances_fig_list, nrow=2, ncol=3)
+  save_fig("Fig_Cluster.jpg", cluster_fig_list, nrow=2, ncol=2)
+  save_fig("Fig_ClusterSupp1.jpg", cluster_supp_fig_list1, nrow=1, ncol=2)
   #save_fig("Fig_ClusterSupp2.png", cluster_supp_fig_list2, nrow=2, ncol=1)
   #save_fig("Fig_Students.png", student_fig_list, nrow=2, ncol=3)
   #save_fig("Fig_Edges.png", edge_fig_list, nrow=2, ncol=2)

@@ -15,10 +15,11 @@ import re
 from scipy.stats import pearsonr
 
 
+
 #dimred = TSNE(n_components=2, learning_rate='auto', init='random', perplexity=3)
 dimred = PCA(whiten=False)
 
-ALPHA = 0.3
+ALPHA = 0.4
 ALPHALEVEL = 0.05
 NPERMS = 100
 POINTSIZE = 2
@@ -28,7 +29,7 @@ MAX_PCS = 0 #8
 FONTSCALE = 1.3
 LEGEND_SIZE = 14 #16
 LEGEND_SIZE2 = 12 #16
-MARKERSCALE = 3
+
 FIGSIZE = (2*6.4, 2*4.8) #width, height
 FIGSIZE2 = (2*6.4, 4*4.8)
 
@@ -41,6 +42,7 @@ INTERVAL = 500
 DPI = 1000
 AGEDELTA = 0.5
 AGE_THR = 2
+MARKERSCALE = 3
 
 CONTINUOUS_VARS =  ['age', 'ability', 'frequency', 'previous_sessions', 'years_from_start']
 
@@ -91,7 +93,9 @@ def parallel_analysis(shapeMatrix, nperms=1000):
         transformedRandomShapeMatrix = pca_random.transform(random_shapeMatrix)
         random_eigenvalues = random_eigenvalues+pca_random.explained_variance_ratio_
     random_eigenvalues = random_eigenvalues / nperms
-    
+
+    plt.rcParams["legend.markerscale"] = 1
+
     PC_values = np.arange(pca.n_components_) + 1
     plt.plot(PC_values, pca.explained_variance_ratio_, '--bo', label='pca-data')
     plt.plot(PC_values, random_eigenvalues, '--rx', label='pca-random')
@@ -141,7 +145,7 @@ class Results:
 myresults = Results()
 
 def save_plot(data, var, title, figname, x, y=None, plot_type='sct', equal_axes=False, palette=None, with_legend=False):
-
+    plt.rcParams["legend.markerscale"] = 4
     os.makedirs(f'./vis/{figname}', exist_ok=True)
     
     fig = plt.figure()
@@ -155,8 +159,8 @@ def save_plot(data, var, title, figname, x, y=None, plot_type='sct', equal_axes=
         axes.set_ylabel(COMP_LABELS[y])
         axes.set_xlim(xlim)
         axes.set_xlabel(COMP_LABELS[x])
-        axes.legend(title=title, markerscale=MARKERSCALE)        
         axes.set_title(title)
+        axes.legend()
         
     if plot_type == 'kde':
         axes = sns.kdeplot(data=data, x=x, hue=var, common_norm=False)
@@ -176,11 +180,12 @@ def save_plot(data, var, title, figname, x, y=None, plot_type='sct', equal_axes=
         yy = data[x].values
         correlation, p_value = pearsonr(xx[~np.isnan(xx)], yy[~np.isnan(xx)])
         axes.text(0.9, 0.95, f"r={correlation:.3f} (p={p_value:.3f})", ha="right", va="top", transform = axes.transAxes)
-        
+        axes.legend()
     
-    axes.legend(prop = { 'size': LEGEND_SIZE })
     
-    if not with_legend:
+    if with_legend:
+        axes.legend(prop = { 'size': LEGEND_SIZE })
+    else:       
         axes.legend_.remove()
     
     if equal_axes: 
@@ -203,7 +208,6 @@ def visualize_students(model, data, device, df_student, OUTNAME, dims=('x', 'y')
     dimred.fit(embedding)
     low_dim = dimred.transform(embedding)
 
-    X = df_student
     X['x'] = low_dim[:, 0]
     X['y'] = low_dim[:, 1]
     X['z'] = low_dim[:, 2]    
@@ -281,7 +285,7 @@ def visualize_items(model, data, device, df_item, OUTNAME, dims=('x', 'y'), equa
     X = df_item #.loc[select, :]
     
     X['domain'] = X['domain'].apply(lambda x: DOMAIN_LABELS[x])
-    
+
     X['x'] = low_dim[:, 0]
     X['y'] = low_dim[:, 1]
     X['z'] = low_dim[:, 2]
@@ -313,17 +317,18 @@ def visualize_items(model, data, device, df_item, OUTNAME, dims=('x', 'y'), equa
         myresults.add_stats('item_difficulty_%s'%mydim, X['IRT_difficulty'], X[mydim])
         myresults.add_stats('item_difficulty1_%s'%mydim, X['IRT1_difficulty'], X[mydim])
         myresults.add_stats('item_discrimination1_%s'%mydim, X['IRT1_discrimination'], X[mydim])
-        
+
+    plt.rcParams["legend.markerscale"] = 1    
     fig = plt.figure()
     PC_values = np.arange(dimred.n_components_) + 1
     #plt.sca(axes[1, 1])
     plt.plot(PC_values, dimred.explained_variance_ratio_*100, 'o-', linewidth=2, color='blue')
     plt.plot(PC_values, np.cumsum(dimred.explained_variance_ratio_)*100, 'o-', linewidth=2, color='red')
-    fig.legend(labels=['Variance', 'Cumulative variance'], loc='center', fontsize=10)
+    fig.legend(labels=['Variance', 'Cumulative variance'], loc='center', fontsize=10, markerscale=1)
     
     print(dimred.explained_variance_ratio_*100)
     print(np.cumsum(dimred.explained_variance_ratio_)*100)
-    
+
     if MAX_PCS > 0:
         plt.xticks(PC_values[:MAX_PCS])
         plt.xlim(0, max(PC_values[:MAX_PCS])+1)
@@ -583,7 +588,10 @@ def plot_clustering(grouping_variable, target_variable, model, data, df_item, de
         #print(scores_df_)
         print(scores_df.shape)
         unique_scales = scores_df_['scale'].unique()
-        ncols = (len(unique_scales)+1)//2
+        if index == 'CH':
+            ncols = (len(unique_scales))//2 + 1
+        else:
+            ncols = (len(unique_scales))//2 
         fig, axes = plt.subplots(ncols=ncols, nrows=2, figsize=FIGSIZE, sharex=True, sharey=True)
         print(unique_scales)
         for i, scale in enumerate(unique_scales):
@@ -630,9 +638,11 @@ def plot_clustering(grouping_variable, target_variable, model, data, df_item, de
                                 '_', '_', '_', 'Shuffled data', 
                                 '_', 
                                 '_', '_', 'Observed data', '_', 'Significance \nthreshold \n(corrected)'], 
-                       loc=(0.82, 0.25), fontsize=LEGEND_SIZE2, markerscale=MARKERSCALE) #loc=(0.72, 0.72)
-        ax = plt.subplot(2, ncols, i+2)
-        ax.set_axis_off()
+                       loc=(0.75, 0.25), fontsize=LEGEND_SIZE2, markerscale=MARKERSCALE) #loc=(0.72, 0.72)loc=(0.82, 0.25)
+        
+        for j in range(i+1, ncols*2):
+            ax = plt.subplot(2, ncols, j+1)
+            ax.set_axis_off()
         #ax.spines['top'].set_visible(False)
         #ax.spines['bottom'].set_visible(False)
         #ax.spines['left'].set_visible(False)
