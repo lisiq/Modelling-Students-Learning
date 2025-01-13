@@ -1,5 +1,5 @@
 #!/bin/sh
-NPERMS=100
+NPERMS=1000
 
 ## full
 

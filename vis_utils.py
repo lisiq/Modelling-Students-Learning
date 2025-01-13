@@ -28,7 +28,7 @@ PERCENTILES = (0.01, 99.99)
 MAX_PCS = 0 #8
 FONTSCALE = 1.3
 LEGEND_SIZE = 14 #16
-LEGEND_SIZE2 = 12 #16
+LEGEND_SIZE2 = 22 #16
 
 FIGSIZE = (2*6.4, 2*4.8) #width, height
 FIGSIZE2 = (2*6.4, 4*4.8)
@@ -42,7 +42,7 @@ INTERVAL = 500
 DPI = 1000
 AGEDELTA = 0.5
 AGE_THR = 2
-MARKERSCALE = 3
+MARKERSCALE = 5
 
 CONTINUOUS_VARS =  ['age', 'ability', 'frequency', 'previous_sessions', 'years_from_start']
 
@@ -634,12 +634,14 @@ def plot_clustering(grouping_variable, target_variable, model, data, df_item, de
             ax.legend_.remove()
             ax.label_outer()
         if index == 'CH':
-            fig.legend(labels=['Significance \nthreshold \n(uncorrected)',
+            leg = fig.legend(labels=['Significance \nthreshold \n(uncorrected)',
                                 '_', '_', '_', 'Shuffled data', 
                                 '_', 
                                 '_', '_', 'Observed data', '_', 'Significance \nthreshold \n(corrected)'], 
-                       loc=(0.75, 0.25), fontsize=LEGEND_SIZE2, markerscale=MARKERSCALE) #loc=(0.72, 0.72)loc=(0.82, 0.25)
-        
+                       loc=(0.70, 0.15), fontsize=LEGEND_SIZE2, markerscale=MARKERSCALE) #loc=(0.72, 0.72)loc=(0.82, 0.25)
+            for legobj in leg.legendHandles:
+                legobj.set_linewidth(2.0)     
+
         for j in range(i+1, ncols*2):
             ax = plt.subplot(2, ncols, j+1)
             ax.set_axis_off()
